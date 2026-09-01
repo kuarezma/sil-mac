@@ -14,6 +14,7 @@ from nexus.ui_helpers import (
 )
 from nexus.menu_helpers import select_menu, checkbox_menu, confirm_menu
 from nexus.deletion_engine import execute_deletion_with_live_report
+from nexus import config as nexus_config
 from InquirerPy.base.control import Choice
 from InquirerPy.separator import Separator
 
@@ -105,6 +106,7 @@ class AppUninstaller:
             "google", "microsoft", "adobe", "antigravity", "nexus", "uv", "pip", "brew"
         }
 
+        orphan_threshold_bytes = nexus_config.get("app_uninstaller.orphan_threshold_mb", 2) * 1024 * 1024
         with create_spinner("Yetim ve silinmiş uygulama artıkları taranıyor...") as progress:
             task = progress.add_task("scan", total=None)
             for search_dir, cat in [
@@ -121,7 +123,7 @@ class AppUninstaller:
                     if not any(app_n in item_lower for app_n in installed_names) and not any(bid in item_lower for bid in installed_bids):
                         fp = os.path.join(search_dir, item)
                         sz = self._get_dir_size(fp) if os.path.isdir(fp) else os.path.getsize(fp)
-                        if sz > 2 * 1024 * 1024: # > 2MB
+                        if sz > orphan_threshold_bytes:
                             orphans.append({
                                 "name": item,
                                 "category": f"Yetim ({cat})",

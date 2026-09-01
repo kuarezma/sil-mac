@@ -14,6 +14,7 @@ from nexus.ui_helpers import (
 )
 from nexus.menu_helpers import checkbox_menu, confirm_menu
 from nexus.deletion_engine import execute_deletion_with_live_report
+from nexus import config as nexus_config
 from InquirerPy.base.control import Choice
 
 class AIRadar:
@@ -148,10 +149,11 @@ class AIRadar:
 
             # 5. Loose GGUF / Safetensors files sitting outside a known model
             # store (e.g. manually downloaded to Downloads/Desktop and forgotten)
-            for scan_dir in [
-                os.path.join(self.home, "Downloads"),
-                os.path.join(self.home, "Desktop"),
-            ]:
+            loose_threshold = nexus_config.get("ai_radar.loose_model_threshold_mb", 50) * 1024 * 1024
+            loose_scan_dirs = nexus_config.expand_paths(
+                nexus_config.get("ai_radar.loose_model_scan_dirs", ["~/Downloads", "~/Desktop"])
+            )
+            for scan_dir in loose_scan_dirs:
                 if not os.path.exists(scan_dir):
                     continue
                 for ext in ["*.gguf", "*.safetensors"]:
@@ -160,7 +162,7 @@ class AIRadar:
                             sz = os.path.getsize(f)
                         except OSError:
                             continue
-                        if sz > 50 * 1024 * 1024:  # > 50MB
+                        if sz > loose_threshold:
                             self.found_items.append({
                                 "type": "Dağınık Model Dosyası",
                                 "name": os.path.basename(f),

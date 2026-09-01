@@ -13,6 +13,7 @@ from nexus.ui_helpers import (
 )
 from nexus.menu_helpers import checkbox_menu, confirm_menu
 from nexus.deletion_engine import execute_deletion_with_live_report
+from nexus import config as nexus_config
 from InquirerPy.base.control import Choice
 from InquirerPy.separator import Separator
 
@@ -38,13 +39,16 @@ class SystemCleaner:
             ("QuickLook & İkon Önbellekleri", "Sistem", os.path.join(self.home, "Library/Caches/com.apple.QuickLook.thumbnailcache"), False)
         ]
 
+        cache_threshold_bytes = nexus_config.get("system_cleaner.cache_threshold_mb", 1) * 1024 * 1024
+        installer_threshold_bytes = nexus_config.get("system_cleaner.installer_threshold_mb", 5) * 1024 * 1024
+
         with create_spinner("macOS sistem önbellekleri ve günlükleri taranıyor...") as progress:
             task = progress.add_task("scan", total=None)
 
             for name, category, path, is_sub_scan in scan_definitions:
                 if os.path.exists(path):
                     sz = self._get_dir_size(path)
-                    if sz > 1024 * 1024: # > 1MB
+                    if sz > cache_threshold_bytes:
                         self.targets.append({
                             "name": name,
                             "category": category,
@@ -60,7 +64,7 @@ class SystemCleaner:
                     for f in glob.glob(os.path.join(downloads_dir, ext)):
                         try:
                             sz = os.path.getsize(f)
-                            if sz > 5 * 1024 * 1024: # > 5MB
+                            if sz > installer_threshold_bytes:
                                 self.targets.append({
                                     "name": f"Yükleyici: {os.path.basename(f)}",
                                     "category": "İndirilenler",

@@ -71,6 +71,10 @@ sil quick --dry-run
 
 Simülasyon modunda öğeler seçilip "silme" onaylanır, gerçek boyut hesaplanır ve rapor gösterilir — ama disk üzerinde hiçbir şey değişmez, ve işlem denetim günlüğüne yazılmaz.
 
+### ⚙️ Yapılandırma (`config.json`)
+
+Nexus ilk çalıştırmada `~/Library/Application Support/Nexus/config.json` dosyasını varsayılan değerlerle oluşturur. Bu dosyayı elle düzenleyerek tarama dizinlerini ve boyut eşiklerini özelleştirebilirsiniz — örneğin `dev_cleaner.scan_dirs` listesine kendi proje klasörünüzü ekleyebilir veya `ai_radar.loose_model_threshold_mb` eşiğini düşürebilirsiniz. Dosya bozuk/geçersiz olursa Nexus sessizce varsayılanlara döner, çökmez.
+
 ### 🗒️ Denetim Günlüğü
 
 Her gerçek silme işlemi `~/Library/Application Support/Nexus/deletion_log.jsonl` dosyasına kaydedilir (zaman, kategori, orijinal konum, boyut, durum). Bu bir "geri al" mekanizması değildir — Nexus alanı hemen boşaltmak için dosyaları kalıcı olarak siler — ama yanlışlıkla silinen önemli bir şeyi Time Machine gibi gerçek bir yedekten tam yoluyla geri kurtarmanızı sağlar. Son kayıtları görmek için:

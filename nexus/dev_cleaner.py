@@ -12,6 +12,7 @@ from nexus.ui_helpers import (
 )
 from nexus.menu_helpers import checkbox_menu, confirm_menu
 from nexus.deletion_engine import execute_deletion_with_live_report
+from nexus import config as nexus_config
 from InquirerPy.base.control import Choice
 from InquirerPy.separator import Separator
 
@@ -81,10 +82,11 @@ class DevCleaner:
             ("uv Cache", "Python", os.path.join(self.home, ".cache/uv")),
         ]
 
+        threshold_bytes = nexus_config.get("dev_cleaner.cache_threshold_mb", 1) * 1024 * 1024
         for name, category, path in known_caches:
             if os.path.exists(path):
                 sz = self._get_dir_size(path)
-                if sz > 1024 * 1024: # > 1MB
+                if sz > threshold_bytes:
                     self.global_caches.append({
                         "name": name,
                         "category": category,
@@ -98,12 +100,12 @@ class DevCleaner:
     def scan_project_artifacts(self, scan_dirs: List[str] = None) -> List[Dict[str, Any]]:
         """Scan workspace folders for heavyweight dev build artifacts."""
         if scan_dirs is None:
-            scan_dirs = [
-                os.path.join(self.home, "Desktop"),
-                os.path.join(self.home, "Documents"),
-                os.path.join(self.home, "Developer"),
-                os.path.join(self.home, "Projects")
-            ]
+            scan_dirs = nexus_config.expand_paths(
+                nexus_config.get("dev_cleaner.scan_dirs", [
+                    "~/Desktop", "~/Documents", "~/Developer", "~/Projects"
+                ])
+            )
+        artifact_threshold_bytes = nexus_config.get("dev_cleaner.artifact_threshold_mb", 5) * 1024 * 1024
 
         self.project_artifacts = []
         target_names = {
@@ -142,7 +144,7 @@ class DevCleaner:
                         if d in target_names:
                             full_path = os.path.join(root, d)
                             sz = self._get_dir_size(full_path)
-                            if sz > 5 * 1024 * 1024: # > 5MB
+                            if sz > artifact_threshold_bytes:
                                 parent_folder = os.path.basename(os.path.dirname(full_path)) or os.path.basename(root)
                                 self.project_artifacts.append({
                                     "name": f"{parent_folder}/{d}",

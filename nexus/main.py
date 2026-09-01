@@ -26,6 +26,7 @@ from nexus.port_radar import PortRadar
 from nexus.optimizer import SystemOptimizer
 from nexus.log_viewer import render_deletion_log
 from nexus.deletion_engine import set_dry_run
+from nexus.config import write_default_config_if_missing
 
 def show_main_menu():
     """Display interactive main menu with laser-aligned columns."""
@@ -120,6 +121,8 @@ def main():
     )
 
     args = parser.parse_args()
+
+    write_default_config_if_missing()
 
     if args.dry_run:
         set_dry_run(True)
