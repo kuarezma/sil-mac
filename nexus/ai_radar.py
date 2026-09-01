@@ -146,7 +146,30 @@ class AIRadar:
                             "category": cat
                         })
 
-            # 5. LM Studio & Jan
+            # 5. Loose GGUF / Safetensors files sitting outside a known model
+            # store (e.g. manually downloaded to Downloads/Desktop and forgotten)
+            for scan_dir in [
+                os.path.join(self.home, "Downloads"),
+                os.path.join(self.home, "Desktop"),
+            ]:
+                if not os.path.exists(scan_dir):
+                    continue
+                for ext in ["*.gguf", "*.safetensors"]:
+                    for f in glob.glob(os.path.join(scan_dir, ext)):
+                        try:
+                            sz = os.path.getsize(f)
+                        except OSError:
+                            continue
+                        if sz > 50 * 1024 * 1024:  # > 50MB
+                            self.found_items.append({
+                                "type": "Dağınık Model Dosyası",
+                                "name": os.path.basename(f),
+                                "path": f,
+                                "size": sz,
+                                "category": "Serbest GGUF/Safetensors"
+                            })
+
+            # 6. LM Studio & Jan
             for app_models, label, cat in [
                 (os.path.join(self.home, ".cache/lm-studio/models"), "LM Studio Models", "LM Studio"),
                 (os.path.join(self.home, ".lmstudio/models"), "LM Studio Models", "LM Studio"),
