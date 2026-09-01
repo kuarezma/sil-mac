@@ -1,7 +1,9 @@
 import os
 import sys
 import time
+import json
 import shutil
+import datetime
 from typing import List, Dict, Any
 from rich.console import Console
 from rich.table import Table
@@ -33,6 +35,39 @@ def _get_path_size(path: str) -> int:
             except OSError:
                 continue
     return total_size
+
+
+DELETION_LOG_PATH = os.path.join(
+    os.path.expanduser("~"), "Library", "Application Support", "Nexus", "deletion_log.jsonl"
+)
+
+
+def _write_deletion_log(operation_title: str, results: List[Dict[str, Any]]) -> None:
+    """Append a JSONL audit record for every deletion attempt (success or not).
+
+    This is an audit trail, not an undo mechanism — Nexus deletes for real
+    (moving to Trash would defeat the tool's purpose of freeing disk space
+    immediately). If something important was removed by mistake, this log
+    at least tells the user exactly what/when/from-where, so they can
+    reach for Time Machine or another real backup with an accurate path.
+    Logging failures never interrupt the deletion flow itself."""
+    try:
+        os.makedirs(os.path.dirname(DELETION_LOG_PATH), exist_ok=True)
+        timestamp = datetime.datetime.now().isoformat(timespec="seconds")
+        with open(DELETION_LOG_PATH, "a", encoding="utf-8") as f:
+            for res in results:
+                f.write(json.dumps({
+                    "timestamp": timestamp,
+                    "operation": operation_title,
+                    "name": res["name"],
+                    "category": res["category"],
+                    "path": res["path"],
+                    "size": res["size"],
+                    "status": res["status"],
+                    "error": res["error"],
+                }, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
 
 
 def _preserve_directory(path: str) -> bool:
@@ -162,6 +197,7 @@ def execute_deletion_with_live_report(
             progress.advance(task, 1)
 
     elapsed = time.time() - start_time
+    _write_deletion_log(operation_title, results)
 
     # -------------------------------------------------------------
     # Post-Deletion Detailed Summary Report
@@ -217,6 +253,7 @@ def execute_deletion_with_live_report(
         padding=(0, 2)
     )
     console.print(p_summary)
+    console.print(f"[{C_MUTED}]Denetim günlüğü: ~/Library/Application Support/Nexus/deletion_log.jsonl[/]\n")
 
     # Audio chime and celebration card
     celebrate_freed_space(total_freed)
