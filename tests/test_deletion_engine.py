@@ -7,8 +7,12 @@ from nexus.deletion_engine import execute_deletion_with_live_report
 
 
 def _run_deletion(items):
+    # Redirect the audit log to a throwaway path so running the test suite
+    # never writes into the real user's ~/Library/Application Support/Nexus.
     with patch("nexus.deletion_engine.time.sleep"), patch(
         "nexus.deletion_engine.celebrate_freed_space"
+    ), tempfile.TemporaryDirectory() as log_dir, patch(
+        "nexus.deletion_engine.DELETION_LOG_PATH", str(Path(log_dir) / "deletion_log.jsonl")
     ):
         return execute_deletion_with_live_report(items, "Test temizliği")
 

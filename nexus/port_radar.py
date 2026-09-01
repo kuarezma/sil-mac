@@ -15,6 +15,18 @@ from nexus.menu_helpers import select_menu, confirm_menu
 from InquirerPy.base.control import Choice
 from InquirerPy.separator import Separator
 
+CRITICAL_PROCESS_NAMES = {"launchd", "kernel_task", "windowserver", "loginwindow"}
+
+
+def is_protected_pid(target_pid: int, current_pid: int, parent_pid: int, proc_name: str) -> bool:
+    """True if target_pid must never be SIGKILL'd from this tool: Nexus
+    itself, its parent shell, PID 0/1, or a handful of macOS processes
+    whose death takes the whole session (or the machine) down with it."""
+    if target_pid in (current_pid, parent_pid, 0, 1):
+        return True
+    return proc_name.lower() in CRITICAL_PROCESS_NAMES
+
+
 class PortRadar:
     def __init__(self):
         pass
@@ -111,17 +123,12 @@ class PortRadar:
 
         target_pid = select_menu("Sonlandırmak istediğiniz portu veya süreci seçin:", choices)
         if target_pid:
-            current_pid = os.getpid()
-            parent_pid = os.getppid()
-            if target_pid in (current_pid, parent_pid, 0, 1):
-                console.print(f"[{C_RED}]✖ Güvenlik: PID {target_pid} kritik bir sistem/kabuk süreci (ya da Nexus'un kendisi) olduğu için sonlandırılamaz.[/]\n")
-                return
             try:
                 proc_name = psutil.Process(target_pid).name()
             except Exception:
                 proc_name = "?"
-            if proc_name.lower() in ["launchd", "kernel_task", "windowserver", "loginwindow"]:
-                console.print(f"[{C_RED}]✖ Güvenlik: '{proc_name}' kritik bir macOS sistem süreci olduğu için sonlandırılamaz.[/]\n")
+            if is_protected_pid(target_pid, os.getpid(), os.getppid(), proc_name):
+                console.print(f"[{C_RED}]✖ Güvenlik: PID {target_pid} ({proc_name}) kritik bir sistem/kabuk süreci (ya da Nexus'un kendisi) olduğu için sonlandırılamaz.[/]\n")
                 return
             if confirm_menu(f"PID {target_pid} ({proc_name}) sürecini zorla sonlandırmak (SIGKILL) istiyor musunuz?", default=False, danger=True):
                 try:
