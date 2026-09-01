@@ -78,6 +78,23 @@ pip install -e .
 
 Kurulum tamamlandığında `sil`, `nexus` ve `mo+` komutları sisteminize global olarak eklenir.
 
+### 3. Geliştirici Bağımlılıkları & Testler
+
+Test paketi (`pytest`) çekirdek kuruluma dahil değildir; `dev` opsiyonel grubuyla eklenir:
+
+```bash
+# uv ile (önerilen)
+uv pip install -e ".[dev]"
+
+# ya da pip ile
+pip install -e ".[dev]"
+```
+
+Testleri çalıştırmak için:
+```bash
+pytest
+```
+
 ---
 
 ## 🏗️ Proje Mimarisi
@@ -101,8 +118,10 @@ sil-mac/
 │   ├── port_radar.py            # Açık TCP portları ve hayalet süreç radarı
 │   ├── optimizer.py             # DNS, RAM purge, QuickLook ve sistem servis optimize edici
 │   └── ui_helpers.py            # Rich tema paleti, gauge göstergeleri ve biçimlendiriciler
+├── tests/
+│   └── test_deletion_engine.py  # Silme motoru birim testleri (pytest, dev bağımlılığı)
 ├── install.sh                   # Tek tuşla kurulum betiği
-├── pyproject.toml               # Modern Python paketleme yapılandırması
+├── pyproject.toml               # Modern Python paketleme yapılandırması ([dev] opsiyonel grubu dahil)
 ├── requirements.txt             # Bağımlılıklar
 └── LICENSE                      # MIT Lisansı
 ```
