@@ -12,7 +12,7 @@ from nexus.ui_helpers import (
     C_CYAN, C_BLUE, C_PURPLE, C_GREEN, C_EMERALD,
     C_AMBER, C_RED, C_MUTED, C_INDIGO, C_DARK
 )
-from nexus.menu_helpers import select_menu, confirm_menu
+from nexus.menu_helpers import select_menu, confirm_menu, format_menu_item
 from nexus.deletion_engine import execute_deletion_with_live_report
 from InquirerPy.base.control import Choice
 from InquirerPy.separator import Separator
@@ -32,16 +32,16 @@ def show_main_menu():
         print_banner()
 
         choices = [
-            Choice("ai",       "🤖   AI & Yerel Model Radarı        │  Hugging Face, Ollama, MLX, Torch, GGUF"),
-            Choice("dev",      "💻   Geliştirici Önbellekleri       │  Xcode, Android, Node, Rust, Python, Go"),
-            Choice("clean",    "🧹   macOS Sistem & Temizlik        │  Önbellekler, Günlükler, Tarayıcılar, Çöp"),
-            Choice("apps",     "🗑️   Akıllı Uygulama Kaldırıcı      │  Kalıntısız silme & Yetim artık avcısı"),
-            Choice("status",   "⚡   Donanım & Telemetri Paneli     │  Apple Silicon M-Serisi, RAM, Pil, Disk"),
-            Choice("ports",    "📡   Port & Hayalet Süreç Radarı    │  Açık Portlar, Bellek Sömürenler & Kill"),
-            Choice("optimize", "🚀   macOS Servis Optimizasyonu     │  DNS, RAM Senkronizasyonu, QuickLook"),
-            Choice("quick",    "✨   Hızlı Akıllı Temizlik          │  Güvenli sistem çöpleri & AI yetimleri"),
+            Choice("ai", format_menu_item("🤖", "AI & Yerel Model Radarı", "Hugging Face, Ollama, MLX, Torch, GGUF")),
+            Choice("dev", format_menu_item("💻", "Geliştirici Önbellekleri", "Xcode, Android, Node, Rust, Python, Go")),
+            Choice("clean", format_menu_item("🧹", "macOS Sistem & Temizlik", "Önbellekler, Günlükler, Tarayıcılar, Çöp")),
+            Choice("apps", format_menu_item("🗑️", "Akıllı Uygulama Kaldırıcı", "Kalıntısız silme & Yetim artık avcısı")),
+            Choice("status", format_menu_item("⚡", "Donanım & Telemetri Paneli", "Apple Silicon M-Serisi, RAM, Pil, Disk")),
+            Choice("ports", format_menu_item("📡", "Port & Hayalet Süreç Radarı", "Açık Portlar, Bellek Sömürenler & Kill")),
+            Choice("optimize", format_menu_item("🚀", "macOS Servis Optimizasyonu", "DNS, RAM Senkronizasyonu, QuickLook")),
+            Choice("quick", format_menu_item("✨", "Hızlı Akıllı Temizlik", "Güvenli sistem çöpleri & AI yetimleri")),
             Separator("────────────────────────────────────────────────────────────────────────────"),
-            Choice("exit",     "❌   Çıkış                          │  Nexus konsolundan ayrıl")
+            Choice("exit", format_menu_item("❌", "Çıkış", "Nexus konsolundan ayrıl"))
         ]
 
         action = select_menu("Çalıştırmak istediğiniz modülü yön tuşlarıyla seçin:", choices)

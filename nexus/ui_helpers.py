@@ -1,5 +1,7 @@
 import os
 import sys
+from typing import List, Dict, Any, Optional
+from wcwidth import wcswidth
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -20,6 +22,37 @@ C_AMBER = "#f59e0b"
 C_RED = "#ef4444"
 C_MUTED = "#94a3b8"
 C_DARK = "#0f172a"
+
+# Semantic aliases: use these when styling by risk level, not just color name.
+C_DANGER = C_RED       # irreversible / destructive actions (kill, uninstall, prune)
+C_SAFE = C_EMERALD      # safe / reversible actions (cache cleanup)
+C_WARN = C_AMBER        # requires attention but not destructive
+
+def pad_visual(text: str, width: int, fill: str = " ") -> str:
+    """Pad text to a target *display* width, accounting for wide/emoji glyphs.
+    Plain str.format ('{:<30}') counts code points, not terminal columns, so
+    emoji and CJK-width characters silently break column alignment. This uses
+    wcwidth to measure actual rendered width instead."""
+    visual_w = wcswidth(text)
+    if visual_w is None or visual_w < 0:
+        visual_w = len(text)
+    if visual_w >= width:
+        return text
+    return text + fill * (width - visual_w)
+
+def truncate_visual(text: str, max_width: int, ellipsis: str = "…") -> str:
+    """Truncate text to a target display width, respecting wide glyphs."""
+    if wcswidth(text) is None:
+        return text[:max_width]
+    if wcswidth(text) <= max_width:
+        return text
+    out = ""
+    for ch in text:
+        w = wcswidth(out + ch + ellipsis)
+        if w is not None and w > max_width:
+            break
+        out += ch
+    return out + ellipsis
 
 def format_bytes(size: int) -> str:
     """Format bytes into a human readable string (KB, MB, GB, TB)."""
@@ -67,6 +100,53 @@ def create_gauge(percentage: float, width: int = 20) -> str:
         
     bar = "█" * filled_len + "░" * empty_len
     return f"[{color}]{bar}[/{color}] [{color}]{percentage:5.1f}%[/{color}]"
+
+def render_scan_table(
+    items: List[Dict[str, Any]],
+    columns: List[Dict[str, Any]],
+    title: Optional[str] = None,
+    numbered: bool = True,
+    start_index: int = 1
+) -> Table:
+    """Build a consistently styled scan-result table from a list of dict items,
+    eliminating the repeated Table/add_column/add_row boilerplate that used to
+    be duplicated (with drifting styles/widths) across every module.
+
+    Each column spec: {"header", "key", "style"=white, "width"=None,
+    "justify"="left", "format"="bytes"|None, "no_wrap"=True}.
+    A key of "size" formats via format_bytes automatically unless overridden.
+    """
+    table = Table(
+        title=title,
+        box=box.ROUNDED,
+        border_style=C_INDIGO,
+        header_style=f"bold {C_CYAN}",
+        expand=True,
+        show_header=True
+    )
+    if numbered:
+        table.add_column("#", style=C_MUTED, width=4, no_wrap=True)
+    for col in columns:
+        table.add_column(
+            col.get("header", ""),
+            style=col.get("style", "white"),
+            width=col.get("width"),
+            justify=col.get("justify", "left"),
+            no_wrap=col.get("no_wrap", True),
+            overflow=col.get("overflow")
+        )
+
+    for i, item in enumerate(items, start_index):
+        row = [str(i)] if numbered else []
+        for col in columns:
+            val = item.get(col["key"], "")
+            fmt = col.get("format") or ("bytes" if col["key"] == "size" else None)
+            if fmt == "bytes":
+                val = format_bytes(val)
+            row.append(str(val))
+        table.add_row(*row)
+
+    return table
 
 def create_spinner(description: str):
     """Create a sleek futuristic spinner for long operations."""

@@ -8,7 +8,7 @@ from rich.panel import Panel
 from rich.text import Text
 from rich import box
 from nexus.ui_helpers import (
-    console, format_bytes, create_header, create_spinner,
+    console, format_bytes, create_header, create_spinner, render_scan_table, pad_visual,
     C_CYAN, C_BLUE, C_PURPLE, C_GREEN, C_EMERALD,
     C_AMBER, C_RED, C_MUTED, C_INDIGO, C_DARK
 )
@@ -179,22 +179,18 @@ class AIRadar:
             ))
             return
 
-        table = Table(box=box.ROUNDED, border_style=C_INDIGO, header_style=f"bold {C_CYAN}", expand=True)
-        table.add_column("#", style=C_MUTED, width=4)
-        table.add_column("Tür / Sağlayıcı", style=f"bold {C_BLUE}", width=22)
-        table.add_column("Model / Önbellek Adı", style="bold white")
-        table.add_column("Boyut", style=f"bold {C_AMBER}", justify="right", width=12)
-
-        total_size = 0
-        for i, it in enumerate(items, 1):
-            total_size += it['size']
-            table.add_row(str(i), it['type'], it['name'], format_bytes(it['size']))
+        total_size = sum(it['size'] for it in items)
+        table = render_scan_table(items, [
+            {"header": "Tür / Sağlayıcı", "key": "type", "style": f"bold {C_BLUE}", "width": 22},
+            {"header": "Model / Önbellek Adı", "key": "name", "style": "bold white"},
+            {"header": "Boyut", "key": "size", "style": f"bold {C_AMBER}", "justify": "right", "width": 12},
+        ])
 
         console.print(table)
         console.print(f"[{C_PURPLE}]Toplam Yerel AI Boyutu:[/] [bold {C_CYAN}]{format_bytes(total_size)}[/]\n")
 
         choices = [
-            Choice(it, f"{it['type']:<22} │  {it['name']:<35} ({format_bytes(it['size'])})")
+            Choice(it, f"{pad_visual(it['type'], 22)} │  {pad_visual(it['name'], 35)} ({format_bytes(it['size'])})")
             for it in items
         ]
 
