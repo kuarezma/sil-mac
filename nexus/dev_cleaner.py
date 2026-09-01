@@ -6,7 +6,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box
 from nexus.ui_helpers import (
-    console, format_bytes, create_header, create_spinner,
+    console, format_bytes, create_header, create_spinner, render_scan_table, pad_visual,
     C_CYAN, C_BLUE, C_PURPLE, C_GREEN, C_EMERALD,
     C_AMBER, C_RED, C_MUTED, C_INDIGO, C_DARK
 )
@@ -164,29 +164,24 @@ class DevCleaner:
 
         # 1. Global Dev Caches Table
         if caches:
-            table_c = Table(title="[bold #38bdf8]📦 Global Geliştirici Önbellekleri & SDK Depoları[/]", box=box.ROUNDED, border_style=C_INDIGO, header_style=f"bold {C_CYAN}", expand=True)
-            table_c.add_column("#", style=C_MUTED, width=4)
-            table_c.add_column("Ekosistem", style=f"bold {C_PURPLE}", width=16)
-            table_c.add_column("Önbellek Türü", style="bold white")
-            table_c.add_column("Boyut", style=f"bold {C_AMBER}", justify="right", width=12)
-
-            for i, c in enumerate(caches, 1):
-                table_c.add_row(str(i), c['category'], c['name'], format_bytes(c['size']))
+            table_c = render_scan_table(caches, [
+                {"header": "Ekosistem", "key": "category", "style": f"bold {C_PURPLE}", "width": 16},
+                {"header": "Önbellek Türü", "key": "name", "style": "bold white"},
+                {"header": "Boyut", "key": "size", "style": f"bold {C_AMBER}", "justify": "right", "width": 12},
+            ], title="[bold #38bdf8]📦 Global Geliştirici Önbellekleri & SDK Depoları[/]")
             console.print(table_c)
         else:
             console.print(f"[{C_EMERALD}]✓ Global geliştirici önbelleği tertemiz.[/]")
 
         # 2. Project Build Artifacts Table
         if artifacts:
-            table_a = Table(title="[bold #38bdf8]📁 Proje Derleme & Bağımlılık Artıkları (node_modules, target, .next)[/]", box=box.ROUNDED, border_style=C_INDIGO, header_style=f"bold {C_CYAN}", expand=True)
-            table_a.add_column("#", style=C_MUTED, width=4)
-            table_a.add_column("Tür", style=f"bold {C_BLUE}", width=20)
-            table_a.add_column("Proje / Dizin Yolu", style="bold white")
-            table_a.add_column("Boyut", style=f"bold {C_AMBER}", justify="right", width=12)
-
-            for i, a in enumerate(artifacts, 1):
-                rel_p = a['path'].replace(self.home, "~")
-                table_a.add_row(str(i + len(caches)), a['category'], rel_p, format_bytes(a['size']))
+            for a in artifacts:
+                a["rel_path"] = a['path'].replace(self.home, "~")
+            table_a = render_scan_table(artifacts, [
+                {"header": "Tür", "key": "category", "style": f"bold {C_BLUE}", "width": 20},
+                {"header": "Proje / Dizin Yolu", "key": "rel_path", "style": "bold white"},
+                {"header": "Boyut", "key": "size", "style": f"bold {C_AMBER}", "justify": "right", "width": 12},
+            ], title="[bold #38bdf8]📁 Proje Derleme & Bağımlılık Artıkları (node_modules, target, .next)[/]", start_index=len(caches) + 1)
             console.print(table_a)
         else:
             console.print(f"[{C_EMERALD}]✓ Proje dizinlerinde ağır derleme artığı bulunamadı.[/]")
@@ -203,13 +198,12 @@ class DevCleaner:
         if caches:
             choices.append(Separator("--- Global Geliştirici Önbellekleri ---"))
             for c in caches:
-                choices.append(Choice(c, f"[{c['category']:<12}] {c['name']:<24} │  ({format_bytes(c['size'])})"))
-        
+                choices.append(Choice(c, f"[{pad_visual(c['category'], 12)}] {pad_visual(c['name'], 24)} │  ({format_bytes(c['size'])})"))
+
         if artifacts:
             choices.append(Separator("--- Proje Derleme Klasörleri ---"))
             for a in artifacts:
-                rel_p = a['path'].replace(self.home, "~")
-                choices.append(Choice(a, f"[{a['category']:<16}] {rel_p:<30} │  ({format_bytes(a['size'])})"))
+                choices.append(Choice(a, f"[{pad_visual(a['category'], 16)}] {pad_visual(a['rel_path'], 30)} │  ({format_bytes(a['size'])})"))
 
         DOCKER_MARKER = "__docker_prune__"
         if docker_ok:
@@ -235,7 +229,7 @@ class DevCleaner:
             console.print(f"[{C_MUTED}]Hiçbir öğe seçilmedi.[/]")
 
         if clean_docker:
-            if confirm_menu("Docker'daki yetim (dangling) imajlar, durdurulmuş konteynerler ve build cache temizlensin mi?", default=False):
+            if confirm_menu("Docker'daki yetim (dangling) imajlar, durdurulmuş konteynerler ve build cache temizlensin mi?", default=False, danger=True):
                 self.clean_docker()
 
     def _get_dir_size(self, path: str) -> int:

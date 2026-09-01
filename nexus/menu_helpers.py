@@ -6,7 +6,7 @@ from InquirerPy.utils import InquirerPyStyle
 from nexus.ui_helpers import pad_visual
 
 # High-Tech Cyberpunk & Glassmorphism Theme
-NEXUS_STYLE = InquirerPyStyle({
+_NEXUS_STYLE_DICT = {
     "questionmark": "#00f0ff bold",
     "answermark": "#10b981 bold",
     "answer": "#00f0ff bold",
@@ -23,13 +23,14 @@ NEXUS_STYLE = InquirerPyStyle({
     "fuzzy_info": "#94a3b8",
     "fuzzy_border": "#6366f1",
     "fuzzy_match": "#00f0ff bold underline",
-})
+}
+NEXUS_STYLE = InquirerPyStyle(_NEXUS_STYLE_DICT)
 
 # Same theme, but the question/pointer accent turns red — used for
 # confirmations on irreversible/destructive actions (kill, uninstall, prune)
 # so the risk level is legible before the user even reads the text.
 NEXUS_STYLE_DANGER = InquirerPyStyle({
-    **NEXUS_STYLE,
+    **_NEXUS_STYLE_DICT,
     "questionmark": "#ef4444 bold",
     "answermark": "#ef4444 bold",
     "answer": "#ef4444 bold",

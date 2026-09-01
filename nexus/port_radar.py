@@ -7,7 +7,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box
 from nexus.ui_helpers import (
-    console, format_bytes, create_header, create_spinner,
+    console, format_bytes, create_header, create_spinner, render_scan_table, pad_visual,
     C_CYAN, C_BLUE, C_PURPLE, C_GREEN, C_EMERALD,
     C_AMBER, C_RED, C_MUTED, C_INDIGO, C_DARK
 )
@@ -74,53 +74,37 @@ class PortRadar:
 
         # 1. Ports Table
         if ports:
-            table_p = Table(
-                title="[bold #38bdf8]🌐 Aktif Dinlenen TCP Portları[/]",
-                box=box.ROUNDED,
-                border_style=C_INDIGO,
-                header_style=f"bold {C_CYAN}",
-                expand=True
-            )
-            table_p.add_column("Port", style=f"bold {C_AMBER}", width=8, no_wrap=True)
-            table_p.add_column("Süreç Adı (Process)", style="bold white", width=22, no_wrap=True)
-            table_p.add_column("PID", style=f"bold {C_BLUE}", width=8, no_wrap=True)
-            table_p.add_column("Kullanıcı", style=C_MUTED, width=12, no_wrap=True)
-            table_p.add_column("Adres", style=C_MUTED, no_wrap=True, overflow="ellipsis")
-
-            for p in ports:
-                table_p.add_row(p['port'], p['process'], str(p['pid']), p['user'], p['address'])
+            table_p = render_scan_table(ports, [
+                {"header": "Port", "key": "port", "style": f"bold {C_AMBER}", "width": 8},
+                {"header": "Süreç Adı (Process)", "key": "process", "style": "bold white", "width": 22},
+                {"header": "PID", "key": "pid", "style": f"bold {C_BLUE}", "width": 8},
+                {"header": "Kullanıcı", "key": "user", "style": C_MUTED, "width": 12},
+                {"header": "Adres", "key": "address", "style": C_MUTED, "overflow": "ellipsis"},
+            ], title="[bold #38bdf8]🌐 Aktif Dinlenen TCP Portları[/]", numbered=False)
             console.print(table_p)
         else:
             console.print(f"[{C_EMERALD}]✓ Dinlenen açık port bulunamadı.[/]")
 
         # 2. High-Memory Processes Table
         if high_procs:
-            table_m = Table(
-                title="[bold #38bdf8]🔥 Yüksek Bellek Tüketen Arka Plan Süreçleri[/]",
-                box=box.ROUNDED,
-                border_style=C_INDIGO,
-                header_style=f"bold {C_CYAN}",
-                expand=True
-            )
-            table_m.add_column("PID", style=f"bold {C_BLUE}", width=8, no_wrap=True)
-            table_m.add_column("Süreç Adı", style="bold white", width=25, no_wrap=True)
-            table_m.add_column("RAM Tüketimi", style=f"bold {C_AMBER}", justify="right", width=14, no_wrap=True)
-            table_m.add_column("Kullanıcı", style=C_MUTED, no_wrap=True)
-
-            for pr in high_procs:
-                table_m.add_row(str(pr['pid']), pr['name'], format_bytes(pr['memory']), pr['user'])
+            table_m = render_scan_table(high_procs, [
+                {"header": "PID", "key": "pid", "style": f"bold {C_BLUE}", "width": 8},
+                {"header": "Süreç Adı", "key": "name", "style": "bold white", "width": 25},
+                {"header": "RAM Tüketimi", "key": "memory", "style": f"bold {C_AMBER}", "justify": "right", "width": 14, "format": "bytes"},
+                {"header": "Kullanıcı", "key": "user", "style": C_MUTED},
+            ], title="[bold #38bdf8]🔥 Yüksek Bellek Tüketen Arka Plan Süreçleri[/]", numbered=False)
             console.print(table_m)
 
         choices = []
         if ports:
             choices.append(Separator("--- Dinlenen Portlar (Kill) ---"))
             for p in ports:
-                choices.append(Choice(p['pid'], f"Port {p['port']:<6} | {p['process']:<18} (PID {p['pid']})"))
+                choices.append(Choice(p['pid'], f"Port {pad_visual(p['port'], 6)} | {pad_visual(p['process'], 18)} (PID {p['pid']})"))
 
         if high_procs:
             choices.append(Separator("--- Yüksek RAM Tüketen Süreçler (Kill) ---"))
             for pr in high_procs:
-                choices.append(Choice(pr['pid'], f"{pr['name']:<22} | {format_bytes(pr['memory']):<10} (PID {pr['pid']})"))
+                choices.append(Choice(pr['pid'], f"{pad_visual(pr['name'], 22)} | {pad_visual(format_bytes(pr['memory']), 10)} (PID {pr['pid']})"))
 
         choices.append(Separator())
         choices.append(Choice(None, "Geri Dön"))
@@ -139,7 +123,7 @@ class PortRadar:
             if proc_name.lower() in ["launchd", "kernel_task", "windowserver", "loginwindow"]:
                 console.print(f"[{C_RED}]✖ Güvenlik: '{proc_name}' kritik bir macOS sistem süreci olduğu için sonlandırılamaz.[/]\n")
                 return
-            if confirm_menu(f"PID {target_pid} ({proc_name}) sürecini zorla sonlandırmak (SIGKILL) istiyor musunuz?", default=False):
+            if confirm_menu(f"PID {target_pid} ({proc_name}) sürecini zorla sonlandırmak (SIGKILL) istiyor musunuz?", default=False, danger=True):
                 try:
                     os.kill(target_pid, signal.SIGKILL)
                     console.print(f"[{C_EMERALD}]✓ Süreç (PID {target_pid}) başarıyla sonlandırıldı.[/]\n")

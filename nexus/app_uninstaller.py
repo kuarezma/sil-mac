@@ -8,7 +8,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box
 from nexus.ui_helpers import (
-    console, format_bytes, create_header, create_spinner,
+    console, format_bytes, create_header, create_spinner, render_scan_table, pad_visual,
     C_CYAN, C_BLUE, C_PURPLE, C_GREEN, C_EMERALD,
     C_AMBER, C_RED, C_MUTED, C_INDIGO, C_DARK
 )
@@ -157,7 +157,7 @@ class AppUninstaller:
             return
 
         choices = [
-            Choice(a, f"{a['name']:<25} │  {a['bundle_id'] or '-':<35} ({format_bytes(a['app_size'])})")
+            Choice(a, f"{pad_visual(a['name'], 25)} │  {pad_visual(a['bundle_id'] or '-', 35)} ({format_bytes(a['app_size'])})")
             for a in apps
         ]
         choices.append(Separator())
@@ -174,7 +174,7 @@ class AppUninstaller:
         for r in residuals:
             console.print(f"  • [{C_PURPLE}]{r['category']}:[/] {r['name']} ({format_bytes(r['size'])})")
 
-        if confirm_menu(f"'{target['name']}' uygulaması ve tüm {len(residuals)} kalıntısı ({format_bytes(total_sz)}) silinsin mi?", default=False):
+        if confirm_menu(f"'{target['name']}' uygulaması ve tüm {len(residuals)} kalıntısı ({format_bytes(total_sz)}) silinsin mi?", default=False, danger=True):
             items_to_del = [{
                 "name": f"{target['name']}.app",
                 "category": "Uygulama İkili Dosyası",
@@ -195,10 +195,16 @@ class AppUninstaller:
             return
 
         total_sz = sum(o['size'] for o in orphans)
+        table = render_scan_table(orphans, [
+            {"header": "Kategori", "key": "category", "style": f"bold {C_PURPLE}", "width": 24},
+            {"header": "Öğe", "key": "name", "style": "bold white"},
+            {"header": "Boyut", "key": "size", "style": f"bold {C_AMBER}", "justify": "right", "width": 12},
+        ])
+        console.print(table)
         console.print(f"[{C_PURPLE}]Toplam Yetim Artık Boyutu:[/] [bold {C_CYAN}]{format_bytes(total_sz)}[/]\n")
 
         choices = [
-            Choice(o, f"[{o['category']:<24}] {o['name']:<30} │  ({format_bytes(o['size'])})")
+            Choice(o, f"[{pad_visual(o['category'], 24)}] {pad_visual(o['name'], 30)} │  ({format_bytes(o['size'])})")
             for o in orphans
         ]
 
