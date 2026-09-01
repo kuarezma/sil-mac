@@ -7,7 +7,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box
 from nexus.ui_helpers import (
-    console, format_bytes, create_header, create_spinner,
+    console, format_bytes, create_header, create_spinner, render_scan_table, pad_visual,
     C_CYAN, C_BLUE, C_PURPLE, C_GREEN, C_EMERALD,
     C_AMBER, C_RED, C_MUTED, C_INDIGO, C_DARK
 )
@@ -86,22 +86,18 @@ class SystemCleaner:
             ))
             return
 
-        table = Table(box=box.ROUNDED, border_style=C_INDIGO, header_style=f"bold {C_CYAN}", expand=True)
-        table.add_column("#", style=C_MUTED, width=4)
-        table.add_column("Kategori", style=f"bold {C_PURPLE}", width=16)
-        table.add_column("Öğe / Konum", style="bold white")
-        table.add_column("Boyut", style=f"bold {C_AMBER}", justify="right", width=12)
-
-        total_size = 0
-        for i, t in enumerate(targets, 1):
-            total_size += t['size']
-            table.add_row(str(i), t['category'], t['name'], format_bytes(t['size']))
+        total_size = sum(t['size'] for t in targets)
+        table = render_scan_table(targets, [
+            {"header": "Kategori", "key": "category", "style": f"bold {C_PURPLE}", "width": 16},
+            {"header": "Öğe / Konum", "key": "name", "style": "bold white"},
+            {"header": "Boyut", "key": "size", "style": f"bold {C_AMBER}", "justify": "right", "width": 12},
+        ])
 
         console.print(table)
         console.print(f"[{C_PURPLE}]Toplam Temizlenebilir Sistem Alanı:[/] [bold {C_CYAN}]{format_bytes(total_size)}[/]\n")
 
         choices = [
-            Choice(t, f"[{t['category']:<12}] {t['name']:<35} │  ({format_bytes(t['size'])})")
+            Choice(t, f"[{pad_visual(t['category'], 12)}] {pad_visual(t['name'], 35)} │  ({format_bytes(t['size'])})")
             for t in targets
         ]
 
