@@ -21,6 +21,47 @@ class DevCleaner:
         self.global_caches: List[Dict[str, Any]] = []
         self.project_artifacts: List[Dict[str, Any]] = []
 
+    def docker_available(self) -> bool:
+        """Check whether the Docker CLI is installed and the daemon is reachable."""
+        if not shutil.which("docker"):
+            return False
+        try:
+            subprocess.run(["docker", "info"], check=True, capture_output=True, timeout=5)
+            return True
+        except Exception:
+            return False
+
+    def get_docker_reclaimable(self) -> Dict[str, str]:
+        """Query docker for reclaimable build cache / dangling image / stopped container space."""
+        info = {}
+        try:
+            out = subprocess.check_output(["docker", "system", "df"], text=True, timeout=10)
+            info["raw"] = out.strip()
+        except Exception:
+            info["raw"] = ""
+        return info
+
+    def clean_docker(self):
+        """Safely reclaim Docker disk space: dangling images, stopped containers,
+        unused networks and build cache. Never touches named/tagged images or running
+        containers/volumes."""
+        console.print(f"\n[bold {C_CYAN}]🐳 Docker temizliği başlatılıyor (yalnızca yetim/dangling veriler)...[/]\n")
+        commands = [
+            (["docker", "container", "prune", "-f"], "Durdurulmuş konteynerler"),
+            (["docker", "image", "prune", "-f"], "Yetim (dangling) imajlar"),
+            (["docker", "network", "prune", "-f"], "Kullanılmayan ağlar"),
+            (["docker", "builder", "prune", "-f"], "Derleme (build) önbelleği"),
+        ]
+        for cmd, label in commands:
+            try:
+                res = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                out = (res.stdout or "").strip().splitlines()
+                reclaimed = next((l for l in out if "reclaimed" in l.lower() or "Total" in l), "")
+                console.print(f"[{C_EMERALD}]✓ {label}:[/] [{C_MUTED}]{reclaimed or 'temiz'}[/]")
+            except Exception as e:
+                console.print(f"[{C_RED}]✖ {label}: {e}[/]")
+        console.print()
+
     def scan_global_caches(self) -> List[Dict[str, Any]]:
         """Scan system-wide development caches and SDK stores."""
         self.global_caches = []
@@ -152,6 +193,12 @@ class DevCleaner:
 
         console.print(f"\n[{C_PURPLE}]Geliştirici Toplam Potansiyel Alan:[/] [bold {C_CYAN}]{format_bytes(grand_total)}[/]\n")
 
+        docker_ok = self.docker_available()
+        if docker_ok:
+            df = self.get_docker_reclaimable()
+            if df.get("raw"):
+                console.print(f"[bold #38bdf8]🐳 Docker Disk Kullanımı[/]\n[{C_MUTED}]{df['raw']}[/]\n")
+
         choices = []
         if caches:
             choices.append(Separator("--- Global Geliştirici Önbellekleri ---"))
@@ -164,6 +211,11 @@ class DevCleaner:
                 rel_p = a['path'].replace(self.home, "~")
                 choices.append(Choice(a, f"[{a['category']:<16}] {rel_p:<30} │  ({format_bytes(a['size'])})"))
 
+        DOCKER_MARKER = "__docker_prune__"
+        if docker_ok:
+            choices.append(Separator("--- Docker ---"))
+            choices.append(Choice(DOCKER_MARKER, "🐳  Docker Yetim Verileri              │  Dangling imaj, durdurulmuş konteyner, build cache"))
+
         if not choices:
             return
 
@@ -172,12 +224,19 @@ class DevCleaner:
             choices
         )
 
+        clean_docker = DOCKER_MARKER in selected_items
+        selected_items = [x for x in selected_items if x != DOCKER_MARKER]
+
         if selected_items:
             sel_sz = sum(x['size'] for x in selected_items)
             if confirm_menu(f"Seçilen {len(selected_items)} geliştirici önbellek/proje klasörünü ({format_bytes(sel_sz)}) silmek istiyor musunuz?", default=False):
                 execute_deletion_with_live_report(selected_items, "Geliştirici Artıkları Temizliği")
-        else:
+        elif not clean_docker:
             console.print(f"[{C_MUTED}]Hiçbir öğe seçilmedi.[/]")
+
+        if clean_docker:
+            if confirm_menu("Docker'daki yetim (dangling) imajlar, durdurulmuş konteynerler ve build cache temizlensin mi?", default=False):
+                self.clean_docker()
 
     def _get_dir_size(self, path: str) -> int:
         total = 0

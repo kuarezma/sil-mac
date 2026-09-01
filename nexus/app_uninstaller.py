@@ -1,4 +1,5 @@
 import os
+import re
 import plistlib
 import shutil
 import glob
@@ -43,6 +44,13 @@ class AppUninstaller:
                         })
         return apps
 
+    @staticmethod
+    def _name_matches(item_lower: str, name_lower: str) -> bool:
+        """Word-boundary aware substring match to avoid false positives
+        (e.g. app 'Sim' must not match unrelated 'Simulator' or 'Similarity')."""
+        pattern = r"(?<![a-z0-9])" + re.escape(name_lower) + r"(?![a-z0-9])"
+        return re.search(pattern, item_lower) is not None
+
     def find_app_residuals(self, app_info: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Find all residual files for a given application."""
         residuals = []
@@ -69,7 +77,7 @@ class AppUninstaller:
                 matched = False
                 if bid and bid.lower() in item_lower:
                     matched = True
-                elif name_lower in item_lower and len(name_lower) > 2:
+                elif len(name_lower) > 3 and self._name_matches(item_lower, name_lower):
                     matched = True
 
                 if matched:

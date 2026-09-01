@@ -127,7 +127,19 @@ class PortRadar:
 
         target_pid = select_menu("Sonlandırmak istediğiniz portu veya süreci seçin:", choices)
         if target_pid:
-            if confirm_menu(f"PID {target_pid} sürecini zorla sonlandırmak (SIGKILL) istiyor musunuz?", default=False):
+            current_pid = os.getpid()
+            parent_pid = os.getppid()
+            if target_pid in (current_pid, parent_pid, 0, 1):
+                console.print(f"[{C_RED}]✖ Güvenlik: PID {target_pid} kritik bir sistem/kabuk süreci (ya da Nexus'un kendisi) olduğu için sonlandırılamaz.[/]\n")
+                return
+            try:
+                proc_name = psutil.Process(target_pid).name()
+            except Exception:
+                proc_name = "?"
+            if proc_name.lower() in ["launchd", "kernel_task", "windowserver", "loginwindow"]:
+                console.print(f"[{C_RED}]✖ Güvenlik: '{proc_name}' kritik bir macOS sistem süreci olduğu için sonlandırılamaz.[/]\n")
+                return
+            if confirm_menu(f"PID {target_pid} ({proc_name}) sürecini zorla sonlandırmak (SIGKILL) istiyor musunuz?", default=False):
                 try:
                     os.kill(target_pid, signal.SIGKILL)
                     console.print(f"[{C_EMERALD}]✓ Süreç (PID {target_pid}) başarıyla sonlandırıldı.[/]\n")
