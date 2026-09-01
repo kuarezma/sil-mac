@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 from rich.table import Table
 from rich.panel import Panel
@@ -29,6 +30,7 @@ class SystemOptimizer:
             Choice("audio", "🎧  4. CoreAudio Ses Alt Sistemini Yeniden Başlat"),
             Choice("ram", "🧠  5. RAM / Bellek Senkronizasyonu (Purge)"),
             Choice("touchid", "🔐  6. Terminal Sudo için Touch ID Yapılandırması"),
+            Choice("brew", "🍺  7. Homebrew Bakımı (cleanup & autoremove)"),
             Separator(),
             Choice("back", "Geri Dön")
         ]
@@ -41,6 +43,8 @@ class SystemOptimizer:
             self.rebuild_launchservices()
             self.restart_audio()
             self.purge_ram()
+        elif action == "brew":
+            self.homebrew_maintenance()
         elif action == "dns":
             self.flush_dns()
         elif action == "quicklook":
@@ -98,6 +102,42 @@ class SystemOptimizer:
                 console.print(f"[{C_AMBER}]Bellek purge işlemi root izni gerektirebilir: 'sudo purge' komutunu çalıştırabilirsiniz.[/]")
         except Exception as e:
             console.print(f"[{C_RED}]Hata: {e}[/]")
+
+    def homebrew_maintenance(self):
+        """Run `brew cleanup` (old formula/cask versions + download cache)
+        and `brew autoremove` (formulae installed only as a now-unused
+        dependency). Both are Homebrew's own standard maintenance commands —
+        neither touches an explicitly-installed formula or cask you still
+        depend on."""
+        if not shutil.which("brew"):
+            console.print(f"[{C_AMBER}]Homebrew bu sistemde kurulu değil, atlanıyor.[/]")
+            return
+
+        if not confirm_menu(
+            "Homebrew eski sürümleri, indirme önbelleğini temizleyip artık gerekmeyen "
+            "bağımlılık paketlerini (autoremove) kaldıracak. Devam edilsin mi?",
+            default=False, danger=True
+        ):
+            return
+
+        for cmd, label in [
+            (["brew", "cleanup", "-s"], "Eski sürümler & indirme önbelleği"),
+            (["brew", "autoremove"], "Artık gereksiz bağımlılıklar"),
+        ]:
+            try:
+                res = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+                out = (res.stdout or "").strip()
+                console.print(f"[{C_EMERALD}]✓ {label}:[/]")
+                if out:
+                    for line in out.splitlines()[:15]:
+                        console.print(f"  [{C_MUTED}]{line}[/]")
+                else:
+                    console.print(f"  [{C_MUTED}]temiz[/]")
+            except subprocess.TimeoutExpired:
+                console.print(f"[{C_RED}]✖ {label}: zaman aşımı[/]")
+            except Exception as e:
+                console.print(f"[{C_RED}]✖ {label}: {e}[/]")
+        console.print()
 
     def setup_touchid(self):
         pam_sudo = "/etc/pam.d/sudo"

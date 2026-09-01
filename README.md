@@ -55,7 +55,7 @@ sil clean      # 🧹 macOS Sistem Önbellekleri, Günlükler, Tarayıcılar, Ç
 sil apps       # 🗑️ Kalıntısız Uygulama Kaldırıcı ve Silinmiş Uygulama Artık Avcısı
 sil status     # ⚡ Apple Silicon SoC, Çekirdek Matrisi, RAM Baskısı, Pil ve NVMe SSD
 sil ports      # 📡 Dinlenen TCP Portları, Bellek Sömüren Süreçler ve Sonlandırma (Kill)
-sil optimize   # 🚀 DNS Temizliği, RAM Senkronizasyonu, QuickLook ve Finder Onarımı
+sil optimize   # 🚀 DNS Temizliği, RAM Senkronizasyonu, QuickLook, Finder Onarımı ve Homebrew Bakımı
 sil quick      # ✨ Hızlı & Güvenli Akıllı Temizlik
 sil log        # 🗒️ Silme Denetim Günlüğünü görüntüle (ne, ne zaman, nereden silindi)
 ```
