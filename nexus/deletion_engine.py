@@ -41,6 +41,17 @@ DELETION_LOG_PATH = os.path.join(
     os.path.expanduser("~"), "Library", "Application Support", "Nexus", "deletion_log.jsonl"
 )
 
+# Process-wide dry-run toggle, set once from main.py via --dry-run before any
+# module renders. Every deletion in the session funnels through
+# execute_deletion_with_live_report, so a single module-level flag here is
+# enough to make the whole run a simulation — no per-caller plumbing needed.
+DRY_RUN = False
+
+
+def set_dry_run(enabled: bool) -> None:
+    global DRY_RUN
+    DRY_RUN = enabled
+
 
 def _write_deletion_log(operation_title: str, results: List[Dict[str, Any]]) -> None:
     """Append a JSONL audit record for every deletion attempt (success or not).
@@ -96,7 +107,9 @@ def execute_deletion_with_live_report(
     total_freed = 0
     start_time = time.time()
 
-    console.print(f"\n[bold {C_CYAN}]⚡ {operation_title} Başlatılıyor...[/] [{C_MUTED}]({len(items_to_delete)} öğe, {format_bytes(total_bytes)})[/]\n")
+    dry_run = DRY_RUN
+    mode_note = " [bold #f59e0b](SİMÜLASYON — hiçbir şey silinmeyecek)[/]" if dry_run else ""
+    console.print(f"\n[bold {C_CYAN}]⚡ {operation_title} Başlatılıyor...[/]{mode_note} [{C_MUTED}]({len(items_to_delete)} öğe, {format_bytes(total_bytes)})[/]\n")
 
     with Progress(
         SpinnerColumn(spinner_name="dots12", style=f"bold {C_CYAN}"),
@@ -140,7 +153,12 @@ def execute_deletion_with_live_report(
                     error_msg = "Geçerli bir dosya veya dizin yolu belirtilmedi."
                 elif os.path.lexists(path):
                     size_before = _get_path_size(path)
-                    if item_type == "file" or os.path.isfile(path) or os.path.islink(path):
+                    if dry_run:
+                        # Simulate only: report the size that would be freed
+                        # without touching the filesystem at all.
+                        success = True
+                        freed_for_item = size_before
+                    elif item_type == "file" or os.path.isfile(path) or os.path.islink(path):
                         os.remove(path)
                         success = True
                         freed_for_item = size_before
@@ -179,7 +197,7 @@ def execute_deletion_with_live_report(
                     "category": cat,
                     "path": rel_path,
                     "size": freed_for_item,
-                    "status": "Başarılı",
+                    "status": "Simülasyon" if dry_run else "Başarılı",
                     "error": ""
                 })
             else:
@@ -197,12 +215,16 @@ def execute_deletion_with_live_report(
             progress.advance(task, 1)
 
     elapsed = time.time() - start_time
-    _write_deletion_log(operation_title, results)
+    if not dry_run:
+        # A dry-run never touched the disk, so logging it as a real
+        # deletion would pollute the audit trail this log exists for.
+        _write_deletion_log(operation_title, results)
 
     # -------------------------------------------------------------
     # Post-Deletion Detailed Summary Report
     # -------------------------------------------------------------
-    console.print(f"\n[bold {C_CYAN}]📋 SİLİNEN ÖĞELER VE DETAYLI TEMİZLİK RAPORU[/]\n")
+    report_title = "📋 SİMÜLASYON RAPORU (HİÇBİR ŞEY SİLİNMEDİ)" if dry_run else "📋 SİLİNEN ÖĞELER VE DETAYLI TEMİZLİK RAPORU"
+    console.print(f"\n[bold {C_CYAN}]{report_title}[/]\n")
 
     report_table = Table(
         box=box.ROUNDED,
@@ -219,7 +241,9 @@ def execute_deletion_with_live_report(
     report_table.add_column("Durum", justify="center", width=12, no_wrap=True)
 
     for i, res in enumerate(results, 1):
-        if res['status'] == "Başarılı":
+        if res['status'] == "Simülasyon":
+            status_style = f"[#f59e0b]◌ Simülasyon[/#f59e0b]"
+        elif res['status'] == "Başarılı":
             status_style = f"[{C_EMERALD}]✔ Başarılı[/{C_EMERALD}]"
         elif res['status'] == "Kısmen tamamlandı":
             status_style = f"[{C_AMBER}]▲ Kısmi[/{C_AMBER}]"
@@ -238,25 +262,29 @@ def execute_deletion_with_live_report(
 
     # Summary Panel
     t_summary = Text()
-    t_summary.append("  Toplam Silinen Öğe: ", style=C_MUTED)
+    t_summary.append(f"  Toplam {'Simüle Edilen' if dry_run else 'Silinen'} Öğe: ", style=C_MUTED)
     t_summary.append(f"{len(results)} Adet  •  ", style="bold white")
     t_summary.append("İşlem Süresi: ", style=C_MUTED)
     t_summary.append(f"{elapsed:.2f} saniye  •  ", style="bold white")
-    t_summary.append("Geri Kazanılan Alan: ", style=C_MUTED)
+    t_summary.append(f"{'Tahmini Kazanılacak' if dry_run else 'Geri Kazanılan'} Alan: ", style=C_MUTED)
     t_summary.append(f"+ {format_bytes(total_freed)}\n", style="bold #10b981")
 
     p_summary = Panel(
         t_summary,
         box=box.ROUNDED,
-        border_style=C_EMERALD,
+        border_style="#f59e0b" if dry_run else C_EMERALD,
         style=f"on {C_DARK}",
         padding=(0, 2)
     )
     console.print(p_summary)
-    console.print(f"[{C_MUTED}]Denetim günlüğü: ~/Library/Application Support/Nexus/deletion_log.jsonl[/]\n")
+    if dry_run:
+        console.print(f"[#f59e0b]Bu bir simülasyondu — hiçbir dosya silinmedi. Gerçek temizlik için --dry-run olmadan çalıştırın.[/]\n")
+    else:
+        console.print(f"[{C_MUTED}]Denetim günlüğü: ~/Library/Application Support/Nexus/deletion_log.jsonl[/]\n")
 
-    # Audio chime and celebration card
-    celebrate_freed_space(total_freed)
+    # Audio chime and celebration card (skip in dry-run — nothing to celebrate yet)
+    if not dry_run:
+        celebrate_freed_space(total_freed)
 
     return {
         "total_freed": total_freed,

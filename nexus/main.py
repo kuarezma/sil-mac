@@ -24,6 +24,8 @@ from nexus.app_uninstaller import AppUninstaller
 from nexus.hardware_dashboard import HardwareDashboard
 from nexus.port_radar import PortRadar
 from nexus.optimizer import SystemOptimizer
+from nexus.log_viewer import render_deletion_log
+from nexus.deletion_engine import set_dry_run
 
 def show_main_menu():
     """Display interactive main menu with laser-aligned columns."""
@@ -40,6 +42,7 @@ def show_main_menu():
             Choice("ports", format_menu_item("📡", "Port & Hayalet Süreç Radarı", "Açık Portlar, Bellek Sömürenler & Kill")),
             Choice("optimize", format_menu_item("🚀", "macOS Servis Optimizasyonu", "DNS, RAM Senkronizasyonu, QuickLook")),
             Choice("quick", format_menu_item("✨", "Hızlı Akıllı Temizlik", "Güvenli sistem çöpleri & AI yetimleri")),
+            Choice("log", format_menu_item("🗒️", "Silme Denetim Günlüğü", "Geçmiş silme işlemlerini görüntüle")),
             Separator("────────────────────────────────────────────────────────────────────────────"),
             Choice("exit", format_menu_item("❌", "Çıkış", "Nexus konsolundan ayrıl"))
         ]
@@ -81,6 +84,10 @@ def show_main_menu():
             os.system("clear")
             _quick_clean()
             input("\nAna menüye dönmek için Enter'a basın...")
+        elif action == "log":
+            os.system("clear")
+            render_deletion_log()
+            input("\nAna menüye dönmek için Enter'a basın...")
 
 def _quick_clean():
     """Run safe quick cleaning across multiple modules with live visual report."""
@@ -105,13 +112,23 @@ def _quick_clean():
 
 def main():
     parser = argparse.ArgumentParser(description="Nexus: Next-Gen macOS Deep Optimizer & AI/Dev Powerhouse")
-    parser.add_argument("module", nargs="?", choices=["ai", "dev", "clean", "apps", "status", "system", "ports", "optimize", "quick"], help="Doğrudan çalıştırılacak modül")
+    parser.add_argument("module", nargs="?", choices=["ai", "dev", "clean", "apps", "status", "system", "ports", "optimize", "quick", "log"], help="Doğrudan çalıştırılacak modül")
     parser.add_argument("--version", "-v", action="version", version="Nexus 2.0.0 Pro (macOS Apple Silicon Native)")
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Hiçbir dosyayı gerçekten silmeden, ne silineceğini simüle et"
+    )
 
     args = parser.parse_args()
 
+    if args.dry_run:
+        set_dry_run(True)
+
     if not args.module:
         show_main_menu()
+    elif args.module == "log":
+        print_banner()
+        render_deletion_log()
     elif args.module == "ai":
         print_banner()
         AIRadar().render()

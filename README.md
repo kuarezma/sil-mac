@@ -57,6 +57,26 @@ sil status     # ⚡ Apple Silicon SoC, Çekirdek Matrisi, RAM Baskısı, Pil ve
 sil ports      # 📡 Dinlenen TCP Portları, Bellek Sömüren Süreçler ve Sonlandırma (Kill)
 sil optimize   # 🚀 DNS Temizliği, RAM Senkronizasyonu, QuickLook ve Finder Onarımı
 sil quick      # ✨ Hızlı & Güvenli Akıllı Temizlik
+sil log        # 🗒️ Silme Denetim Günlüğünü görüntüle (ne, ne zaman, nereden silindi)
+```
+
+### 🧪 Simülasyon Modu (`--dry-run`)
+
+Herhangi bir modülü, hiçbir dosyayı gerçekten silmeden ne olacağını görmek için `--dry-run` ile çalıştırabilirsiniz:
+
+```bash
+sil clean --dry-run
+sil quick --dry-run
+```
+
+Simülasyon modunda öğeler seçilip "silme" onaylanır, gerçek boyut hesaplanır ve rapor gösterilir — ama disk üzerinde hiçbir şey değişmez, ve işlem denetim günlüğüne yazılmaz.
+
+### 🗒️ Denetim Günlüğü
+
+Her gerçek silme işlemi `~/Library/Application Support/Nexus/deletion_log.jsonl` dosyasına kaydedilir (zaman, kategori, orijinal konum, boyut, durum). Bu bir "geri al" mekanizması değildir — Nexus alanı hemen boşaltmak için dosyaları kalıcı olarak siler — ama yanlışlıkla silinen önemli bir şeyi Time Machine gibi gerçek bir yedekten tam yoluyla geri kurtarmanızı sağlar. Son kayıtları görmek için:
+
+```bash
+sil log
 ```
 
 ---
