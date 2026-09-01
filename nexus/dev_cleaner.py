@@ -128,12 +128,16 @@ class DevCleaner:
                 if not os.path.exists(base_dir):
                     continue
                 for root, dirs, _ in os.walk(base_dir):
-                    dirs[:] = [d for d in dirs if d not in ignore_dirs and not (d.startswith(".") and d not in target_names)]
                     rel = os.path.relpath(root, base_dir)
                     if rel != "." and len(rel.split(os.sep)) >= 3:
                         dirs[:] = []
                         continue
 
+                    # Detect target artifact dirs BEFORE the ignore-list filter below.
+                    # Several target names (node_modules, venv, .venv) are also in
+                    # ignore_dirs — that list exists to stop os.walk from recursing
+                    # into their internals, not to hide them from detection. Filtering
+                    # first would silently drop them before this loop ever saw them.
                     for d in list(dirs):
                         if d in target_names:
                             full_path = os.path.join(root, d)
@@ -148,6 +152,8 @@ class DevCleaner:
                                     "type": "dir"
                                 })
                             dirs.remove(d)
+
+                    dirs[:] = [d for d in dirs if d not in ignore_dirs and not (d.startswith(".") and d not in target_names)]
 
         return self.project_artifacts
 
