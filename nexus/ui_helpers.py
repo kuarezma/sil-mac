@@ -69,18 +69,28 @@ def format_bytes(size: int) -> str:
         size /= 1024.0
     return f"{size:.2f} TB"
 
-def create_header(title: str, subtitle: str = "", icon: str = "⚡") -> Panel:
-    """Create a stylized glowing header panel."""
+_HEADER_TIER_COLOR = {"safe": C_SAFE, "caution": C_WARN}
+
+def create_header(title: str, subtitle: str = "", icon: str = "⚡", tier: Optional[str] = None) -> Panel:
+    """Create a stylized glowing header panel.
+
+    tier: optional "safe" (emerald border — read-only modules like status/log)
+    or "caution" (amber border — modules that can kill processes, uninstall
+    apps, or otherwise change the system), so the risk level of a module is
+    visible the instant its screen opens, not just inside individual confirm
+    prompts. Omit for the default cyan border (the common case: cache/file
+    cleanup, always gated by its own confirm)."""
+    accent = _HEADER_TIER_COLOR.get(tier, C_CYAN)
     t = Text()
-    t.append(f" {icon} ", style=f"bold {C_CYAN}")
+    t.append(f" {icon} ", style=f"bold {accent}")
     t.append(title.upper(), style="bold white")
     if subtitle:
         t.append(f"  •  {subtitle}", style=f"italic {C_MUTED}")
-    
+
     return Panel(
         t,
         box=box.DOUBLE,
-        border_style=C_CYAN,
+        border_style=accent,
         padding=(0, 2),
         style=f"on {C_DARK}"
     )

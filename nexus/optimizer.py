@@ -19,7 +19,7 @@ class SystemOptimizer:
 
     def render(self):
         """Render macOS optimization tools with arrow keys."""
-        console.print(create_header("macOS PERFORMANS & SİSTEM SERVİSİ OPTİMİZASYONU", "DNS, Bellek, QuickLook, LaunchServices & Ses/BT", "🚀"))
+        console.print(create_header("macOS PERFORMANS & SİSTEM SERVİSİ OPTİMİZASYONU", "DNS, Bellek, QuickLook, LaunchServices & Ses/BT", "🚀", tier="caution"))
 
         choices = [
             Choice("all", "⚡  Tüm Optimizasyonları Sırayla Çalıştır (1-5)"),

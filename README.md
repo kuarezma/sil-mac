@@ -39,7 +39,9 @@ sil
 - **`Space` (Boşluk)**: Çoklu seçim listelerinde öğeleri işaretle / kaldır `[✔]`
 - **`a`**: Tüm öğeleri tek tuşla seç
 - **`Enter`**: Seçimi onayla ve işlemi başlat
-- **`q`** *(veya `Ctrl+C`)*: Bir önceki menüye dön / çıkış yap
+- **`Esc`** *(veya `Ctrl+C`)*: Bir önceki menüye dön / mevcut işlemi iptal et
+
+Her ekranın başlık çerçevesi risk seviyesini gösterir: 🟢 **yeşil** = salt okunur/güvenli (Donanım Paneli, Denetim Günlüğü), 🟠 **turuncu** = sistemi değiştiren/geri alınması zor işlemler (Port & Süreç Radarı, Uygulama Kaldırıcı, Optimizasyon), **camgöbeği** = standart önbellek/dosya temizliği (her zaman kendi onayıyla korunur).
 
 ---
 

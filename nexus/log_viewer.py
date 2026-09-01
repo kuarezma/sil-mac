@@ -43,7 +43,8 @@ def render_deletion_log(limit: int = 30):
     console.print(create_header(
         "SİLME DENETİM GÜNLÜĞÜ",
         f"Son {limit} işlem — zaman, konum, boyut ve durum",
-        "🗒️"
+        "🗒️",
+        tier="safe"
     ))
 
     entries = _read_log_entries()

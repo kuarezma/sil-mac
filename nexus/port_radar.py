@@ -79,7 +79,7 @@ class PortRadar:
 
     def render(self):
         """Render Port & Process Radar with clean aligned tables."""
-        console.print(create_header("PORT & HAYALET SÜREÇ RADARI", "Dinlenen TCP Portları, Yüksek Bellek Tüketen Süreçler & Kill", "📡"))
+        console.print(create_header("PORT & HAYALET SÜREÇ RADARI", "Dinlenen TCP Portları, Yüksek Bellek Tüketen Süreçler & Kill", "📡", tier="caution"))
 
         ports = self.scan_ports()
         high_procs = self.scan_high_memory_processes()

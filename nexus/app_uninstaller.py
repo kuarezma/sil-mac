@@ -136,7 +136,7 @@ class AppUninstaller:
 
     def render(self):
         """Render App Uninstaller & Orphan Hunter with arrow-key menus."""
-        console.print(create_header("AKILLI UYGULAMA KALDIRICI & YETİM ARTIK AVCISI", "Kalıntısız Kaldırma & Silinmiş Uygulama Artıkları", "🗑️"))
+        console.print(create_header("AKILLI UYGULAMA KALDIRICI & YETİM ARTIK AVCISI", "Kalıntısız Kaldırma & Silinmiş Uygulama Artıkları", "🗑️", tier="caution"))
 
         mode_choices = [
             Choice("apps", "1. Yüklü Uygulamayı Kalıntılarıyla Kaldır"),

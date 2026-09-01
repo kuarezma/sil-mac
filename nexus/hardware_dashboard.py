@@ -124,7 +124,7 @@ class HardwareDashboard:
 
     def render(self):
         """Render perfectly aligned, zero-overflow hardware telemetry grid."""
-        console.print(create_header("APPLE SILICON DONANIM & SİSTEM TELEMETRİSİ", "M-Serisi SoC, Bellek Baskısı & NVMe Depolama", "⚡"))
+        console.print(create_header("APPLE SILICON DONANIM & SİSTEM TELEMETRİSİ", "M-Serisi SoC, Bellek Baskısı & NVMe Depolama", "⚡", tier="safe"))
 
         sys_info = self.get_system_info()
         mem = self.get_memory_info()
