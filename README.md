@@ -86,8 +86,11 @@ Test paketi (`pytest`) çekirdek kuruluma dahil değildir; `dev` opsiyonel grubu
 # uv ile (önerilen)
 uv pip install -e ".[dev]"
 
-# ya da pip ile
+# ya da pip ile (pyproject extras)
 pip install -e ".[dev]"
+
+# ya da düz requirements dosyasıyla
+pip install -r requirements-dev.txt
 ```
 
 Testleri çalıştırmak için:
@@ -122,7 +125,8 @@ sil-mac/
 │   └── test_deletion_engine.py  # Silme motoru birim testleri (pytest, dev bağımlılığı)
 ├── install.sh                   # Tek tuşla kurulum betiği
 ├── pyproject.toml               # Modern Python paketleme yapılandırması ([dev] opsiyonel grubu dahil)
-├── requirements.txt             # Bağımlılıklar
+├── requirements.txt             # Çekirdek (runtime) bağımlılıklar
+├── requirements-dev.txt         # requirements.txt + pytest (test/geliştirme bağımlılığı)
 └── LICENSE                      # MIT Lisansı
 ```
 
