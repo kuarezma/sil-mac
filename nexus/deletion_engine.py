@@ -17,6 +17,35 @@ from nexus.ui_helpers import (
 )
 from nexus.effects import celebrate_freed_space
 
+
+def _get_path_size(path: str) -> int:
+    """Return the on-disk size of a file or directory without following symlinks."""
+    if os.path.islink(path) or os.path.isfile(path):
+        return os.lstat(path).st_size
+
+    total_size = 0
+    for directory, _, filenames in os.walk(path):
+        for filename in filenames:
+            file_path = os.path.join(directory, filename)
+            try:
+                if not os.path.islink(file_path):
+                    total_size += os.path.getsize(file_path)
+            except OSError:
+                continue
+    return total_size
+
+
+def _preserve_directory(path: str) -> bool:
+    """Keep shared macOS root folders while removing their selected contents."""
+    home = os.path.expanduser("~")
+    preserved_roots = {
+        os.path.join(home, "Library", "Caches"),
+        os.path.join(home, "Library", "Logs"),
+        os.path.join(home, ".Trash"),
+    }
+    return os.path.normpath(path) in preserved_roots
+
+
 def execute_deletion_with_live_report(
     items_to_delete: List[Dict[str, Any]],
     operation_title: str = "Temizlik İşlemi"
@@ -72,14 +101,18 @@ def execute_deletion_with_live_report(
             freed_for_item = 0
 
             try:
-                if os.path.exists(path):
+                if not path:
+                    error_msg = "Geçerli bir dosya veya dizin yolu belirtilmedi."
+                elif os.path.lexists(path):
+                    size_before = _get_path_size(path)
                     if item_type == "file" or os.path.isfile(path) or os.path.islink(path):
                         os.remove(path)
                         success = True
-                        freed_for_item = sz
+                        freed_for_item = size_before
                     elif os.path.isdir(path):
-                        # If system/cache root directory, clean contents to preserve folder
-                        if any(sys_root in path for sys_root in ["Library/Caches", "Library/Logs", ".Trash"]):
+                        # Keep only the explicitly selected shared macOS roots.
+                        if _preserve_directory(path):
+                            child_errors = []
                             for child in os.listdir(path):
                                 cp = os.path.join(path, child)
                                 try:
@@ -87,18 +120,20 @@ def execute_deletion_with_live_report(
                                         os.remove(cp)
                                     elif os.path.isdir(cp):
                                         shutil.rmtree(cp)
-                                except Exception:
-                                    pass
-                            success = True
-                            freed_for_item = sz
+                                except OSError as exc:
+                                    child_errors.append(f"{child}: {exc}")
+                            size_after = _get_path_size(path)
+                            freed_for_item = max(size_before - size_after, 0)
+                            success = not child_errors
+                            if child_errors:
+                                error_msg = "; ".join(child_errors[:3])
                         else:
                             shutil.rmtree(path)
                             success = True
-                            freed_for_item = sz
+                            freed_for_item = size_before
                 else:
-                    success = True
-                    freed_for_item = sz
-            except Exception as e:
+                    error_msg = "Öğe artık bulunamadı; silme işlemi uygulanmadı."
+            except OSError as e:
                 success = False
                 error_msg = str(e)
 
@@ -108,17 +143,19 @@ def execute_deletion_with_live_report(
                     "name": name,
                     "category": cat,
                     "path": rel_path,
-                    "size": sz,
+                    "size": freed_for_item,
                     "status": "Başarılı",
                     "error": ""
                 })
             else:
+                status = "Kısmen tamamlandı" if freed_for_item else "Başarısız"
+                total_freed += freed_for_item
                 results.append({
                     "name": name,
                     "category": cat,
                     "path": rel_path,
-                    "size": sz,
-                    "status": "Başarısız",
+                    "size": freed_for_item,
+                    "status": status,
                     "error": error_msg
                 })
 
@@ -146,7 +183,12 @@ def execute_deletion_with_live_report(
     report_table.add_column("Durum", justify="center", width=12, no_wrap=True)
 
     for i, res in enumerate(results, 1):
-        status_style = f"[{C_EMERALD}]✔ Başarılı[/{C_EMERALD}]" if res['status'] == "Başarılı" else f"[{C_RED}]✖ Hata[/{C_RED}]"
+        if res['status'] == "Başarılı":
+            status_style = f"[{C_EMERALD}]✔ Başarılı[/{C_EMERALD}]"
+        elif res['status'] == "Kısmen tamamlandı":
+            status_style = f"[{C_AMBER}]▲ Kısmi[/{C_AMBER}]"
+        else:
+            status_style = f"[{C_RED}]✖ Hata[/{C_RED}]"
         report_table.add_row(
             str(i),
             res['category'],

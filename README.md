@@ -113,3 +113,16 @@ sil-mac/
 
 Bu proje [MIT Lisansı](LICENSE) altında açık kaynak olarak lisanslanmıştır.  
 Geliştirici: **Uğur Yaşayan** ([@kuarezma](https://github.com/kuarezma))
+
+---
+
+## Değişiklik Notları
+
+- Silme raporları artık kayıp öğeleri geri kazanılmış alan olarak saymaz; gösterilen alan, işlem anında ölçülen gerçek disk alanıdır.
+- Paylaşılan macOS önbellek, günlük ve çöp kök dizinleri korunarak yalnızca içerikleri temizlenir.
+
+## Test
+
+```bash
+python3 -m unittest discover -s tests -v
+```
