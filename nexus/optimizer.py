@@ -141,14 +141,27 @@ class SystemOptimizer:
 
     def setup_touchid(self):
         pam_sudo = "/etc/pam.d/sudo"
-        pam_tid = "auth       sufficient     pam_tid.so\n"
+        pam_local = "/etc/pam.d/sudo_local"
+        pam_template = "/etc/pam.d/sudo_local.template"
         try:
-            with open(pam_sudo, 'r') as f:
-                content = f.read()
-            if "pam_tid.so" in content:
-                console.print(f"[{C_EMERALD}]✓ Touch ID sudo yetkilendirmesi zaten aktif![/]")
+            active = False
+            for path in [pam_local, pam_sudo]:
+                if os.path.exists(path):
+                    with open(path, 'r') as f:
+                        for line in f:
+                            if "pam_tid.so" in line and not line.strip().startswith("#"):
+                                active = True
+                                break
+                if active:
+                    break
+
+            if active:
+                console.print(f"[{C_EMERALD}]✓ Touch ID sudo yetkilendirmesi sisteminizde zaten aktif ve çalışıyor![/]")
             else:
-                console.print(f"[{C_AMBER}]Touch ID'yi sudo için etkinleştirmek için şu komutu çalıştırabilirsiniz:[/]")
-                console.print(f"[bold white]sudo sed -i '' '1s;^;auth       sufficient     pam_tid.so\\n;' /etc/pam.d/sudo[/]\n")
+                console.print(f"[{C_AMBER}]Touch ID'yi sudo için sistem güncellemelerinde sıfırlanmayacak şekilde kalıcı etkinleştirmek için:[/]")
+                if os.path.exists(pam_template):
+                    console.print(f"[bold white]sudo cp /etc/pam.d/sudo_local.template /etc/pam.d/sudo_local && sudo sed -i '' 's/#auth/auth/' /etc/pam.d/sudo_local[/]\n")
+                else:
+                    console.print(f"[bold white]sudo sed -i '' '1s;^;auth       sufficient     pam_tid.so\\n;' /etc/pam.d/sudo[/]\n")
         except Exception as e:
             console.print(f"[{C_RED}]Hata: {e}[/]")

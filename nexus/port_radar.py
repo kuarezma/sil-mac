@@ -35,7 +35,7 @@ class PortRadar:
         """Scan all active listening TCP ports on the system."""
         ports = []
         try:
-            out = subprocess.check_output(["lsof", "-iTCP", "-sTCP:LISTEN", "-n", "-P"], text=True)
+            out = subprocess.check_output(["lsof", "+c", "0", "-iTCP", "-sTCP:LISTEN", "-n", "-P"], text=True)
             lines = out.strip().splitlines()
             if len(lines) > 1:
                 for l in lines[1:]:

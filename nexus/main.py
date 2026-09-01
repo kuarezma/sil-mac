@@ -103,7 +103,11 @@ def _quick_clean():
 
     ai = AIRadar()
     ai_items = ai.scan()
-    safe_ai = [it for it in ai_items if "orphan" in it['category'] or "temp" in it['category']]
+    safe_ai = [
+        it for it in ai_items
+        if any(k in it.get('category', '').lower() or k in it.get('type', '').lower()
+               for k in ['yetim', 'orphan', 'geçici', 'temp', 'dangling'])
+    ]
 
     combined_items = safe_sys + safe_ai
     if combined_items:

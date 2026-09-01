@@ -147,8 +147,23 @@ sil-mac/
 │   ├── port_radar.py            # Açık TCP portları ve hayalet süreç radarı
 │   ├── optimizer.py             # DNS, RAM purge, QuickLook ve sistem servis optimize edici
 │   └── ui_helpers.py            # Rich tema paleti, gauge göstergeleri ve biçimlendiriciler
-├── tests/
-│   └── test_deletion_engine.py  # Silme motoru birim testleri (pytest, dev bağımlılığı)
+├── tests/                       # Kapsamlı birim test paketi (81 test, %100 izole)
+│   ├── test_ai_radar.py
+│   ├── test_app_uninstaller.py
+│   ├── test_app_uninstaller_orphans.py
+│   ├── test_app_uninstaller_scanning.py
+│   ├── test_config.py
+│   ├── test_deletion_engine.py
+│   ├── test_dev_cleaner.py
+│   ├── test_dry_run.py
+│   ├── test_effects.py
+│   ├── test_hardware_dashboard.py
+│   ├── test_log_viewer.py
+│   ├── test_main.py
+│   ├── test_optimizer.py
+│   ├── test_port_radar.py
+│   ├── test_system_cleaner.py
+│   └── test_ui_helpers.py
 ├── install.sh                   # Tek tuşla kurulum betiği
 ├── pyproject.toml               # Modern Python paketleme yapılandırması ([dev] opsiyonel grubu dahil)
 ├── requirements.txt             # Çekirdek (runtime) bağımlılıklar
@@ -165,13 +180,18 @@ Geliştirici: **Uğur Yaşayan** ([@kuarezma](https://github.com/kuarezma))
 
 ---
 
-## Değişiklik Notları
+## Değişiklik Notları (Changelog)
 
-- Silme raporları artık kayıp öğeleri geri kazanılmış alan olarak saymaz; gösterilen alan, işlem anında ölçülen gerçek disk alanıdır.
-- Paylaşılan macOS önbellek, günlük ve çöp kök dizinleri korunarak yalnızca içerikleri temizlenir.
+- **Apple Silicon Bellek & Telemetri Hassasiyeti**: macOS sayfa boyutu (`16384` bytes) dinamik tespiti eklendi, RAM katmanları gerçek değerleriyle senkronize edildi.
+- **APFS Data Volume Disk Tespiti**: Depolama alanı `/System/Volumes/Data` üzerinden gerçek kullanıcı ve uygulama disk doluluğunu yansıtacak şekilde optimize edildi.
+- **Gelişmiş Pil ve Güç Durumu**: `pmset` çıktısındaki "not charging / beklemede" durumları doğru ayrıştırıldı ve maksimum pil kapasitesi metrikleri entegre edildi.
+- **Hızlı Temizlik Filtreleme**: `_quick_clean` içerisindeki AI yetimleri ve geçici dosya etiketlemeleri tam uyumlu hale getirildi.
+- **Port ve Süreç İsimleri**: `lsof +c 0` ile süreç isimlerinin 9 karakterde kesilmesi önlendi, tam süreç adları sağlandı.
+- **Modern Touch ID Sudo Entegrasyonu**: macOS Sonoma ve Sequoia uyumlu `sudo_local` mekanizması eklendi.
+- **Genişletilmiş Test Paketi**: 81 adet %100 izole birim testi ile tüm modüller uçtan uca doğrulandı.
 
 ## Test
 
 ```bash
-python3 -m unittest discover -s tests -v
+pytest
 ```

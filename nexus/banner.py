@@ -12,9 +12,11 @@ console = Console(force_terminal=True, color_system="truecolor")
 
 def get_mini_telemetry():
     """Fetch quick lightweight metrics for the HUD banner."""
-    cpu_pct = psutil.cpu_percent(interval=None)
+    per_core = psutil.cpu_percent(percpu=True, interval=0.08)
+    cpu_pct = sum(per_core) / max(1, len(per_core)) if per_core else 0.0
     vm = psutil.virtual_memory()
-    disk = psutil.disk_usage("/")
+    data_path = "/System/Volumes/Data" if os.path.exists("/System/Volumes/Data") else "/"
+    disk = psutil.disk_usage(data_path)
     batt_str = "AC"
     try:
         raw = subprocess.check_output(["pmset", "-g", "batt"], text=True)
@@ -28,6 +30,7 @@ def get_mini_telemetry():
 
     return {
         "cpu": cpu_pct,
+        "per_core": per_core,
         "ram": vm.percent,
         "disk": disk.percent,
         "batt": batt_str
@@ -48,7 +51,7 @@ def print_banner(version: str = "2.0.0 PRO"):
     )
 
     hud = get_mini_telemetry()
-    cpu_spark = sparkline([10, 25, hud['cpu'], max(5, hud['cpu'] - 10), hud['cpu']])
+    cpu_spark = sparkline(hud.get('per_core') or [hud['cpu']], 0, 100)
 
     t_right = Text()
     t_right.append(" NEXUS DEEP OPTIMIZER\n", style="bold #00f0ff")

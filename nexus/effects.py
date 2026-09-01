@@ -31,7 +31,7 @@ def cyber_gradient(text: str, colors: List[str] = None) -> Text:
     
     t = Text()
     lines = text.splitlines(keepends=True)
-    total_chars = max(1, sum(len(line) for line in lines))
+    total_chars = max(1, sum(len(line.rstrip('\r\n')) for line in lines))
     char_idx = 0
 
     num_segments = len(colors) - 1

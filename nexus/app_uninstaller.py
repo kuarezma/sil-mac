@@ -9,6 +9,7 @@ from rich.panel import Panel
 from rich import box
 from nexus.ui_helpers import (
     console, format_bytes, create_header, create_spinner, render_scan_table, pad_visual,
+    get_path_size,
     C_CYAN, C_BLUE, C_PURPLE, C_GREEN, C_EMERALD,
     C_AMBER, C_RED, C_MUTED, C_INDIGO, C_DARK
 )
@@ -67,7 +68,9 @@ class AppUninstaller:
             ("Saved State", os.path.join(self.home, "Library/Saved Application State")),
             ("Preferences", os.path.join(self.home, "Library/Preferences")),
             ("Logs", os.path.join(self.home, "Library/Logs")),
-            ("HTTPStorages", os.path.join(self.home, "Library/HTTPStorages"))
+            ("HTTPStorages", os.path.join(self.home, "Library/HTTPStorages")),
+            ("WebKit", os.path.join(self.home, "Library/WebKit")),
+            ("Application Scripts", os.path.join(self.home, "Library/Application Scripts"))
         ]
 
         for cat, base_path in search_locations:
@@ -112,7 +115,8 @@ class AppUninstaller:
             for search_dir, cat in [
                 (os.path.join(self.home, "Library/Application Support"), "Application Support"),
                 (os.path.join(self.home, "Library/Caches"), "Caches"),
-                (os.path.join(self.home, "Library/Saved Application State"), "Saved State")
+                (os.path.join(self.home, "Library/Saved Application State"), "Saved State"),
+                (os.path.join(self.home, "Library/Containers"), "Containers")
             ]:
                 if not os.path.exists(search_dir):
                     continue
@@ -229,13 +233,4 @@ class AppUninstaller:
         return ""
 
     def _get_dir_size(self, path: str) -> int:
-        total = 0
-        try:
-            for dirpath, _, filenames in os.walk(path):
-                for f in filenames:
-                    fp = os.path.join(dirpath, f)
-                    if not os.path.islink(fp):
-                        total += os.path.getsize(fp)
-        except Exception:
-            pass
-        return total
+        return get_path_size(path)

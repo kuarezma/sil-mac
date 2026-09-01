@@ -7,6 +7,7 @@ from rich.panel import Panel
 from rich import box
 from nexus.ui_helpers import (
     console, format_bytes, create_header, create_spinner, render_scan_table, pad_visual,
+    get_path_size,
     C_CYAN, C_BLUE, C_PURPLE, C_GREEN, C_EMERALD,
     C_AMBER, C_RED, C_MUTED, C_INDIGO, C_DARK
 )
@@ -241,13 +242,4 @@ class DevCleaner:
                 self.clean_docker()
 
     def _get_dir_size(self, path: str) -> int:
-        total = 0
-        try:
-            for dirpath, _, filenames in os.walk(path):
-                for f in filenames:
-                    fp = os.path.join(dirpath, f)
-                    if not os.path.islink(fp):
-                        total += os.path.getsize(fp)
-        except Exception:
-            pass
-        return total
+        return get_path_size(path)

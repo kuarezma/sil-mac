@@ -1,6 +1,7 @@
 import os
 import sys
-from typing import List, Dict, Any, Optional
+import math
+from typing import List, Dict, Any, Optional, Union
 from wcwidth import wcswidth
 from rich.console import Console
 from rich.panel import Panel
@@ -54,10 +55,17 @@ def truncate_visual(text: str, max_width: int, ellipsis: str = "…") -> str:
         out += ch
     return out + ellipsis
 
-def format_bytes(size: int) -> str:
+def format_bytes(size: Optional[Union[int, float]]) -> str:
     """Format bytes into a human readable string (KB, MB, GB, TB)."""
-    if size < 0:
+    if size is None or size < 0:
         return "0 B"
+    try:
+        size = float(size)
+        if math.isnan(size) or math.isinf(size):
+            return "0 B"
+    except (TypeError, ValueError):
+        return "0 B"
+
     for unit in ['B', 'KB', 'MB', 'GB', 'TB', 'PB']:
         if size < 1024.0 or unit == 'PB':
             if unit == 'B':
@@ -97,8 +105,16 @@ def create_header(title: str, subtitle: str = "", icon: str = "⚡", tier: Optio
 
 def create_gauge(percentage: float, width: int = 20) -> str:
     """Create a high-tech colored gauge bar with unicode blocks."""
-    percentage = max(0.0, min(100.0, float(percentage)))
-    filled_len = int(round(width * percentage / 100))
+    try:
+        percentage = float(percentage)
+        if math.isnan(percentage) or math.isinf(percentage):
+            percentage = 0.0
+    except (TypeError, ValueError):
+        percentage = 0.0
+
+    percentage = max(0.0, min(100.0, percentage))
+    filled_len = int(round(width * percentage / 100.0))
+    filled_len = max(0, min(width, filled_len))
     empty_len = width - filled_len
     
     if percentage < 60:
@@ -110,6 +126,30 @@ def create_gauge(percentage: float, width: int = 20) -> str:
         
     bar = "█" * filled_len + "░" * empty_len
     return f"[{color}]{bar}[/{color}] [{color}]{percentage:5.1f}%[/{color}]"
+
+def get_path_size(path: str) -> int:
+    """Calculate the on-disk size of a file or directory without following symlinks."""
+    if not path or not os.path.lexists(path):
+        return 0
+    if os.path.islink(path) or os.path.isfile(path):
+        try:
+            return os.lstat(path).st_size
+        except OSError:
+            return 0
+
+    total = 0
+    try:
+        for dirpath, _, filenames in os.walk(path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                try:
+                    if not os.path.islink(fp):
+                        total += os.path.getsize(fp)
+                except OSError:
+                    continue
+    except OSError:
+        pass
+    return total
 
 def render_scan_table(
     items: List[Dict[str, Any]],

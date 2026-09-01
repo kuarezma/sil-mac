@@ -13,6 +13,8 @@ from nexus.ui_helpers import (
 )
 from nexus.effects import sparkline
 
+import resource
+
 class HardwareDashboard:
     def __init__(self):
         pass
@@ -44,14 +46,22 @@ class HardwareDashboard:
         pressure = 0.0
         active_gb = wired_gb = compressed_gb = free_gb = 0.0
         try:
+            # Dynamic page size detection (16384 bytes on Apple Silicon, 4096 bytes on Intel)
+            page_size = resource.getpagesize() if hasattr(resource, 'getpagesize') else 16384
             vm_stat = subprocess.check_output(["vm_stat"], text=True)
             stats = {}
-            for line in vm_stat.splitlines():
+            lines = vm_stat.splitlines()
+            if lines and "page size of" in lines[0]:
+                m = re.search(r"page size of (\d+) bytes", lines[0])
+                if m:
+                    page_size = int(m.group(1))
+
+            for line in lines:
                 if ":" in line:
                     parts = line.split(":")
                     val = parts[1].strip().rstrip(".")
                     if val.isdigit():
-                        stats[parts[0].strip()] = int(val) * 4096
+                        stats[parts[0].strip()] = int(val) * page_size
             
             free = stats.get("Pages free", 0) + stats.get("Pages speculative", 0)
             active = stats.get("Pages active", 0)
@@ -91,30 +101,37 @@ class HardwareDashboard:
         }
         try:
             raw = subprocess.check_output(["pmset", "-g", "batt"], text=True)
+            raw_lower = raw.lower()
             if "%" in raw:
                 match = re.search(r"(\d+)%", raw)
                 if match:
                     batt["percent"] = int(match.group(1))
-            if "discharging" in raw.lower():
+            
+            if "discharging" in raw_lower:
                 batt["state"] = "Pilde (Deşarj)"
-            elif "charging" in raw.lower():
+            elif "not charging" in raw_lower or "finishing charge" in raw_lower or "charged" in raw_lower:
+                batt["state"] = "AC Adaptöründe (Beklemede)"
+            elif "charging" in raw_lower:
                 batt["state"] = "Şarj Oluyor (AC)"
                 batt["is_charging"] = True
-            else:
+            elif "ac" in raw_lower or "connected" in raw_lower:
                 batt["state"] = "AC Adaptörüne Bağlı"
 
             sp_raw = subprocess.check_output(["system_profiler", "SPPowerDataType"], text=True)
             for line in sp_raw.splitlines():
-                if "Cycle Count" in line:
+                if "Cycle Count" in line or "Döngü Sayısı" in line:
                     batt["cycle_count"] = line.split(":")[1].strip()
-                if "Condition" in line:
+                if "Condition" in line or "Durum" in line:
                     batt["health"] = line.split(":")[1].strip()
+                if "Maximum Capacity" in line or "Maksimum Kapasite" in line:
+                    batt["health"] += f" ({line.split(':')[1].strip()})"
         except Exception:
             pass
         return batt
 
     def get_disk_info(self):
-        disk = psutil.disk_usage("/")
+        data_path = "/System/Volumes/Data" if os.path.exists("/System/Volumes/Data") else "/"
+        disk = psutil.disk_usage(data_path)
         return {
             "total": disk.total,
             "used": disk.used,
@@ -131,7 +148,7 @@ class HardwareDashboard:
         batt = self.get_battery_info()
         disk = self.get_disk_info()
         per_core = psutil.cpu_percent(percpu=True, interval=0.25)
-        total_cpu = sum(per_core) / max(1, len(per_core))
+        total_cpu = sum(per_core) / max(1, len(per_core)) if per_core else 0.0
 
         # Main Telemetry Grid Table
         table = Table(
@@ -155,7 +172,7 @@ class HardwareDashboard:
         )
         table.add_row(
             "⚡ Çekirdek Matrisi",
-            f"C1-C8 Dağılım: [{C_CYAN}]{core_sparks}[/{C_CYAN}]",
+            f"C1-C{len(per_core)} Dağılım: [{C_CYAN}]{core_sparks}[/{C_CYAN}]",
             f"[{C_MUTED}]Uptime: {sys_info['uptime']}[/]"
         )
 

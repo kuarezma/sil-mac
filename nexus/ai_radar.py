@@ -9,6 +9,7 @@ from rich.text import Text
 from rich import box
 from nexus.ui_helpers import (
     console, format_bytes, create_header, create_spinner, render_scan_table, pad_visual,
+    get_path_size,
     C_CYAN, C_BLUE, C_PURPLE, C_GREEN, C_EMERALD,
     C_AMBER, C_RED, C_MUTED, C_INDIGO, C_DARK
 )
@@ -25,6 +26,7 @@ class AIRadar:
     def scan(self) -> List[Dict[str, Any]]:
         """Deep scan for all AI models, weights, and caches."""
         self.found_items = []
+        cache_threshold = nexus_config.get("ai_radar.cache_threshold_mb", 1) * 1024 * 1024
 
         with create_spinner("Yapay zeka modelleri ve ağırlık önbellekleri taranıyor...") as progress:
             task = progress.add_task("scan", total=None)
@@ -122,7 +124,7 @@ class AIRadar:
             ]:
                 if os.path.exists(mlx_path):
                     sz = self._get_dir_size(mlx_path)
-                    if sz > 1024 * 1024: # > 1MB
+                    if sz > cache_threshold:
                         self.found_items.append({
                             "type": label,
                             "name": os.path.basename(mlx_path),
@@ -138,7 +140,7 @@ class AIRadar:
             ]:
                 if os.path.exists(torch_path):
                     sz = self._get_dir_size(torch_path)
-                    if sz > 1024 * 1024:
+                    if sz > cache_threshold:
                         self.found_items.append({
                             "type": label,
                             "name": os.path.basename(torch_path),
@@ -180,7 +182,7 @@ class AIRadar:
             ]:
                 if os.path.exists(app_models):
                     sz = self._get_dir_size(app_models)
-                    if sz > 1024 * 1024:
+                    if sz > cache_threshold:
                         self.found_items.append({
                             "type": label,
                             "name": os.path.basename(app_models),
@@ -232,13 +234,4 @@ class AIRadar:
             console.print(f"[{C_MUTED}]Hiçbir öğe seçilmedi.[/]")
 
     def _get_dir_size(self, path: str) -> int:
-        total = 0
-        try:
-            for dirpath, _, filenames in os.walk(path):
-                for f in filenames:
-                    fp = os.path.join(dirpath, f)
-                    if not os.path.islink(fp):
-                        total += os.path.getsize(fp)
-        except Exception:
-            pass
-        return total
+        return get_path_size(path)
