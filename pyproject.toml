@@ -18,11 +18,6 @@ dependencies = [
   "InquirerPy>=0.3.4",
   "wcwidth>=0.2.0"
 ]
-
-[project.optional-dependencies]
-dev = [
-  "pytest>=8.0.0"
-]
 keywords = [
   "macos", "apple-silicon", "optimizer", "cleanup", "developer-tools",
   "ai-models", "ollama", "huggingface", "mlx", "tui", "cli"
@@ -41,6 +36,11 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: System :: Systems Administration",
   "Topic :: Utilities"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0"
 ]
 
 [project.scripts]
