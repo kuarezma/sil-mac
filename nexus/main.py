@@ -41,7 +41,7 @@ def show_main_menu():
             Choice("apps", format_menu_item("🗑️", "Akıllı Uygulama Kaldırıcı", "Kalıntısız silme & Yetim artık avcısı")),
             Choice("status", format_menu_item("⚡", "Donanım & Telemetri Paneli", "Apple Silicon M-Serisi, RAM, Pil, Disk")),
             Choice("ports", format_menu_item("📡", "Port & Hayalet Süreç Radarı", "Açık Portlar, Bellek Sömürenler & Kill")),
-            Choice("optimize", format_menu_item("🚀", "macOS Servis Optimizasyonu", "DNS, RAM Senkronizasyonu, QuickLook")),
+            Choice("optimize", format_menu_item("🩺", "MacBook Sağlık & Derin Optimizasyon", "Sağlık Skoru, RAM, Termal, DNS, APFS, Font")),
             Choice("quick", format_menu_item("✨", "Hızlı Akıllı Temizlik", "Güvenli sistem çöpleri & AI yetimleri")),
             Choice("log", format_menu_item("🗒️", "Silme Denetim Günlüğü", "Geçmiş silme işlemlerini görüntüle")),
             Separator("────────────────────────────────────────────────────────────────────────────"),
@@ -77,7 +77,7 @@ def show_main_menu():
             os.system("clear")
             PortRadar().render()
             input("\nAna menüye dönmek için Enter'a basın...")
-        elif action == "optimize":
+        elif action in ["optimize", "health"]:
             os.system("clear")
             SystemOptimizer().render()
             input("\nAna menüye dönmek için Enter'a basın...")
@@ -117,7 +117,7 @@ def _quick_clean():
 
 def main():
     parser = argparse.ArgumentParser(description="Nexus: Next-Gen macOS Deep Optimizer & AI/Dev Powerhouse")
-    parser.add_argument("module", nargs="?", choices=["ai", "dev", "clean", "apps", "status", "system", "ports", "optimize", "quick", "log"], help="Doğrudan çalıştırılacak modül")
+    parser.add_argument("module", nargs="?", choices=["ai", "dev", "clean", "apps", "status", "system", "ports", "optimize", "health", "quick", "log"], help="Doğrudan çalıştırılacak modül")
     parser.add_argument("--version", "-v", action="version", version="Nexus 2.0.0 Pro (macOS Apple Silicon Native)")
     parser.add_argument(
         "--dry-run", action="store_true",
@@ -154,7 +154,7 @@ def main():
     elif args.module == "ports":
         print_banner()
         PortRadar().render()
-    elif args.module == "optimize":
+    elif args.module in ["optimize", "health"]:
         print_banner()
         SystemOptimizer().render()
     elif args.module == "quick":

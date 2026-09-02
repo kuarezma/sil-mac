@@ -21,7 +21,8 @@ Popüler `mole` (`mo`) aracı basit bir Bash betiğidir ve günümüzün modern 
 | **🗑️ Akıllı Kaldırıcı & Yetim Avcısı** | Basit silme | ✅ **Derin Kalıntı Tespiti + Önceden Silinmiş Uygulamaların Sahipsiz Veri Avcısı (Orphan Hunter)** |
 | **⚡ Apple Silicon Telemetrisi** | Kısıtlı metin | ✅ **M-Serisi SoC, Anlık Çekirdek Matrisi (C1-C8), Unified RAM Baskısı (Pressure), Pil & NVMe Sağlığı** |
 | **📡 Port & Hayalet Süreçler** | ❌ Yok | ✅ **Dinlenen TCP Portları, Bellek Sömüren Süreçler & Tek Tuşla `kill` Yeteneği** |
-| **🚀 macOS Optimizasyonu** | Temel | ✅ **DNS Flush, RAM Purge, QuickLook Reset, LaunchServices Onarımı, Touch ID Sudo** |
+| **🩺 MacBook Sağlık & Derin Optimizasyon** | ❌ Yok | ✅ **0-100 Canlı Sağlık Skoru, 1-Tıkla İyileştirme, Termal Kontrol, APFS Snapshot, Font & Spotlight Onarımı, LaunchAgents Denetimi** |
+| **🚀 macOS Servis Optimizasyonu** | Temel | ✅ **DNS Flush, RAM Purge, QuickLook Reset, LaunchServices Onarımı, Touch ID Sudo & Homebrew Bakımı** |
 | **📊 Canlı Silme & Sonuç Raporu** | ❌ Yok | ✅ **Gerçek Zamanlı İlerleme Çubuğu + İşlem Sonu Detaylı Döküm Tablosu & Kutlama Kartı** |
 
 ---
@@ -41,7 +42,7 @@ sil
 - **`Enter`**: Seçimi onayla ve işlemi başlat
 - **`Esc`** *(veya `Ctrl+C`)*: Bir önceki menüye dön / mevcut işlemi iptal et
 
-Her ekranın başlık çerçevesi risk seviyesini gösterir: 🟢 **yeşil** = salt okunur/güvenli (Donanım Paneli, Denetim Günlüğü), 🟠 **turuncu** = sistemi değiştiren/geri alınması zor işlemler (Port & Süreç Radarı, Uygulama Kaldırıcı, Optimizasyon), **camgöbeği** = standart önbellek/dosya temizliği (her zaman kendi onayıyla korunur).
+Her ekranın başlık çerçevesi risk seviyesini gösterir: 🟢 **yeşil** = salt okunur/güvenli (Donanım Paneli, Sağlık Raporu, Denetim Günlüğü), 🟠 **turuncu** = sistemi değiştiren/geri alınması zor işlemler (Port & Süreç Radarı, Uygulama Kaldırıcı, Optimizasyon), **camgöbeği** = standart önbellek/dosya temizliği (her zaman kendi onayıyla korunur).
 
 ---
 
@@ -51,13 +52,14 @@ Her ekranın başlık çerçevesi risk seviyesini gösterir: 🟢 **yeşil** = s
 
 ```bash
 sil            # 🎛️ Ana interaktif kontrol merkezini açar
+sil health     # 🩺 MacBook Sağlık Raporu & Derin Optimizasyon (0-100 Sağlık Skoru, 1-Tıkla İyileştirme)
+sil optimize   # 🚀 macOS Servis Optimizasyonu, RAM Purge, DNS, QuickLook, Font & APFS Bakımı
 sil ai         # 🤖 AI & Yerel Model Radarı (Hugging Face, Ollama, MLX, Torch, Whisper)
 sil dev        # 💻 Geliştirici Önbellekleri (Xcode, Android, Node, Rust, Python, Go)
 sil clean      # 🧹 macOS Sistem Önbellekleri, Günlükler, Tarayıcılar, Çöp Kutusu
 sil apps       # 🗑️ Kalıntısız Uygulama Kaldırıcı ve Silinmiş Uygulama Artık Avcısı
 sil status     # ⚡ Apple Silicon SoC, Çekirdek Matrisi, RAM Baskısı, Pil ve NVMe SSD
 sil ports      # 📡 Dinlenen TCP Portları, Bellek Sömüren Süreçler ve Sonlandırma (Kill)
-sil optimize   # 🚀 DNS Temizliği, RAM Senkronizasyonu, QuickLook, Finder Onarımı ve Homebrew Bakımı
 sil quick      # ✨ Hızlı & Güvenli Akıllı Temizlik
 sil log        # 🗒️ Silme Denetim Günlüğünü görüntüle (ne, ne zaman, nereden silindi)
 ```
@@ -182,13 +184,14 @@ Geliştirici: **Uğur Yaşayan** ([@kuarezma](https://github.com/kuarezma))
 
 ## Değişiklik Notları (Changelog)
 
+- **🩺 MacBook Sağlık & Derin Optimizasyon Paketi**: 0-100 canlı donanım & kararlılık sağlık skoru, 1-Tıkla tam MacBook canlandırma/iyileştirme, APFS Time Machine snapshot temizliği (`tmutil thinlocalsnapshots`), font önbellek onarımı, Spotlight tazeleme ve yetim LaunchAgents denetleyicisi eklendi.
 - **Apple Silicon Bellek & Telemetri Hassasiyeti**: macOS sayfa boyutu (`16384` bytes) dinamik tespiti eklendi, RAM katmanları gerçek değerleriyle senkronize edildi.
 - **APFS Data Volume Disk Tespiti**: Depolama alanı `/System/Volumes/Data` üzerinden gerçek kullanıcı ve uygulama disk doluluğunu yansıtacak şekilde optimize edildi.
-- **Gelişmiş Pil ve Güç Durumu**: `pmset` çıktısındaki "not charging / beklemede" durumları doğru ayrıştırıldı ve maksimum pil kapasitesi metrikleri entegre edildi.
+- **Gelişmiş Pil ve Güç Durumu**: `ioreg` ve `pmset` entegrasyonu ile gerçek döngü sayısı, tasarım kapasitesi ve sağlık yüzdesi hesaplaması eklendi.
 - **Hızlı Temizlik Filtreleme**: `_quick_clean` içerisindeki AI yetimleri ve geçici dosya etiketlemeleri tam uyumlu hale getirildi.
 - **Port ve Süreç İsimleri**: `lsof +c 0` ile süreç isimlerinin 9 karakterde kesilmesi önlendi, tam süreç adları sağlandı.
 - **Modern Touch ID Sudo Entegrasyonu**: macOS Sonoma ve Sequoia uyumlu `sudo_local` mekanizması eklendi.
-- **Genişletilmiş Test Paketi**: 81 adet %100 izole birim testi ile tüm modüller uçtan uca doğrulandı.
+- **Genişletilmiş Test Paketi**: 90 adet %100 izole birim testi ile tüm modüller uçtan uca doğrulandı.
 
 ## Test
 

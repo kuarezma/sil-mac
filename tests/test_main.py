@@ -43,5 +43,12 @@ class MainCliTests(unittest.TestCase):
         self.assertIn("Trash", names)
         self.assertIn("Blob", names)
 
+    @patch("sys.argv", ["sil", "health"])
+    @patch("nexus.optimizer.SystemOptimizer.render")
+    @patch("nexus.banner.print_banner")
+    def test_health_module_dispatch(self, mock_banner, mock_render):
+        nexus_main.main()
+        mock_render.assert_called_once()
+
 if __name__ == "__main__":
     unittest.main()
