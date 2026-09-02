@@ -19,7 +19,6 @@ from nexus.ui_helpers import (
     C_AMBER, C_RED, C_MUTED, C_INDIGO, C_DARK,
     C_SAFE, C_WARN, C_DANGER
 )
-from nexus.effects import neon_badge, sparkline, celebrate_freed_space
 from nexus.menu_helpers import select_menu, confirm_menu, format_menu_item
 from InquirerPy.base.control import Choice
 from InquirerPy.separator import Separator
@@ -477,7 +476,6 @@ class SystemOptimizer:
             func()
             console.print()
 
-        celebrate_freed_space(0)
         console.print(f"[{C_EMERALD}]✨ MacBook cihazınızın tüm sistem servisleri ve önbellekleri başarıyla optimize edildi![/]\n")
 
     # -------------------------------------------------------------------------
