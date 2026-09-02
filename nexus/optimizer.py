@@ -485,7 +485,9 @@ class SystemOptimizer:
         """Flush DNS cache and restart mDNSResponder."""
         try:
             subprocess.run(["dscacheutil", "-flushcache"], check=False)
-            subprocess.run(["killall", "-HUP", "mDNSResponder"], check=False)
+            res = subprocess.run(["killall", "-HUP", "mDNSResponder"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res.returncode != 0:
+                subprocess.run(["sudo", "killall", "-HUP", "mDNSResponder"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             console.print(f"[{C_EMERALD}]✓ DNS önbelleği başarıyla temizlendi ve mDNSResponder yenilendi.[/]")
         except Exception as e:
             console.print(f"[{C_RED}]Hata: {e}[/]")
@@ -529,7 +531,9 @@ class SystemOptimizer:
     def restart_audio(self):
         """Restart CoreAudio daemon to resolve sound crackling and bluetooth sync issues."""
         try:
-            subprocess.run(["killall", "coreaudiod"], check=False)
+            res = subprocess.run(["killall", "coreaudiod"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res.returncode != 0:
+                subprocess.run(["sudo", "killall", "coreaudiod"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             console.print(f"[{C_EMERALD}]✓ CoreAudio alt sistemi yeniden başlatıldı.[/]")
         except Exception as e:
             console.print(f"[{C_RED}]Hata: {e}[/]")
@@ -555,7 +559,9 @@ class SystemOptimizer:
         """Refresh and unstick Spotlight indexing processes."""
         try:
             subprocess.run(["killall", "mdworker"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.run(["killall", "mdworker_shared"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            res_mw = subprocess.run(["killall", "mdworker_shared"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res_mw.returncode != 0:
+                subprocess.run(["sudo", "killall", "mdworker_shared"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             res = subprocess.run(["mdutil", "-s", "/"], capture_output=True, text=True, check=False)
             status_out = res.stdout.strip() if res.stdout else "İndeksleme aktif"
             console.print(f"[{C_EMERALD}]✓ Spotlight arama servisleri tazelendi. ({status_out})[/]")
@@ -572,7 +578,9 @@ class SystemOptimizer:
                 return
 
             console.print(f"[{C_CYAN}]ℹ {len(snaps)} adet yerel APFS snapshot bulundu, seyreltiliyor...[/]")
-            subprocess.run(["tmutil", "thinlocalsnapshots", "/", "99999999999", "4"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            res_thin = subprocess.run(["tmutil", "thinlocalsnapshots", "/", "99999999999", "4"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res_thin.returncode != 0:
+                subprocess.run(["sudo", "tmutil", "thinlocalsnapshots", "/", "99999999999", "4"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             console.print(f"[{C_EMERALD}]✓ Yerel APFS Time Machine snapshotları başarıyla seyreltildi ve boş alan kazanıldı.[/]")
         except Exception as e:
             console.print(f"[{C_RED}]Hata: {e}[/]")

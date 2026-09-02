@@ -52,3 +52,18 @@ class DeletionEngineTests(unittest.TestCase):
         self.assertEqual(result["total_freed"], 0)
         self.assertEqual(result["results"][0]["status"], "Başarısız")
         self.assertIn("Geçerli", result["results"][0]["error"])
+
+    @patch("subprocess.run")
+    def test_deletes_with_sudo_on_permission_error(self, mock_run):
+        mock_run.return_value.returncode = 0
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "root_file.bin"
+            target.write_bytes(b"x" * 64)
+
+            with patch("os.remove", side_effect=PermissionError("Permission denied")):
+                result = _run_deletion([
+                    {"name": "Kök Dosya", "path": str(target), "size": 64, "type": "file"}
+                ])
+                self.assertEqual(result["total_freed"], 64)
+                self.assertEqual(result["results"][0]["status"], "Başarılı")
+                mock_run.assert_called_with(["sudo", "rm", "-f", str(target)], check=False, stdout=-3, stderr=-3)

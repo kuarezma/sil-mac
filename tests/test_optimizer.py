@@ -11,8 +11,17 @@ class SystemOptimizerTests(unittest.TestCase):
 
     @patch("subprocess.run")
     def test_flush_dns(self, mock_run):
+        mock_run.return_value.returncode = 0
         self.opt.flush_dns()
         self.assertEqual(mock_run.call_count, 2)
+
+    @patch("subprocess.run")
+    def test_flush_dns_elevates_to_sudo(self, mock_run):
+        res_fail = MagicMock(returncode=1)
+        res_ok = MagicMock(returncode=0)
+        mock_run.side_effect = [res_ok, res_fail, res_ok]
+        self.opt.flush_dns()
+        self.assertEqual(mock_run.call_count, 3)
 
     @patch("subprocess.run")
     def test_reset_quicklook(self, mock_run):
@@ -21,8 +30,17 @@ class SystemOptimizerTests(unittest.TestCase):
 
     @patch("subprocess.run")
     def test_restart_audio(self, mock_run):
+        mock_run.return_value.returncode = 0
         self.opt.restart_audio()
-        mock_run.assert_called_once_with(["killall", "coreaudiod"], check=False)
+        self.assertEqual(mock_run.call_count, 1)
+
+    @patch("subprocess.run")
+    def test_restart_audio_elevates_to_sudo(self, mock_run):
+        res_fail = MagicMock(returncode=1)
+        res_ok = MagicMock(returncode=0)
+        mock_run.side_effect = [res_fail, res_ok]
+        self.opt.restart_audio()
+        self.assertEqual(mock_run.call_count, 2)
 
     @patch("subprocess.run")
     def test_purge_ram(self, mock_run):
@@ -32,7 +50,6 @@ class SystemOptimizerTests(unittest.TestCase):
 
     @patch("subprocess.run")
     def test_purge_ram_elevates_to_sudo(self, mock_run):
-        # First call fails (code 1), second call (sudo) succeeds (code 0)
         res_fail = MagicMock(returncode=1)
         res_ok = MagicMock(returncode=0)
         mock_run.side_effect = [res_fail, res_ok]
@@ -49,12 +66,14 @@ class SystemOptimizerTests(unittest.TestCase):
 
     @patch("subprocess.run")
     def test_refresh_spotlight(self, mock_run):
+        mock_run.return_value.returncode = 0
         mock_run.return_value.stdout = "Indexing enabled."
         self.opt.refresh_spotlight()
         self.assertGreaterEqual(mock_run.call_count, 3)
 
     @patch("subprocess.run")
     def test_clean_local_snapshots(self, mock_run):
+        mock_run.return_value.returncode = 0
         mock_run.return_value.stdout = "com.apple.TimeMachine.2024-01-01-120000.local"
         self.opt.clean_local_snapshots()
         self.assertEqual(mock_run.call_count, 2)

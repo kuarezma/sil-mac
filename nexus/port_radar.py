@@ -134,5 +134,12 @@ class PortRadar:
                 try:
                     os.kill(target_pid, signal.SIGKILL)
                     console.print(f"[{C_EMERALD}]✓ Süreç (PID {target_pid}) başarıyla sonlandırıldı.[/]\n")
+                except PermissionError:
+                    # Sudo ile otomatik yetkilendir
+                    res = subprocess.run(["sudo", "kill", "-9", str(target_pid)], check=False)
+                    if res.returncode == 0:
+                        console.print(f"[{C_EMERALD}]✓ Süreç (PID {target_pid}) yetkilendirilerek başarıyla sonlandırıldı.[/]\n")
+                    else:
+                        console.print(f"[{C_RED}]✖ Süreç sonlandırılamadı: Erişim reddedildi.[/]\n")
                 except Exception as e:
                     console.print(f"[{C_RED}]Hata: {e}[/]\n")

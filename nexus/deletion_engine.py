@@ -3,6 +3,7 @@ import sys
 import time
 import json
 import shutil
+import subprocess
 import datetime
 from typing import List, Dict, Any
 from rich.console import Console
@@ -159,9 +160,17 @@ def execute_deletion_with_live_report(
                         success = True
                         freed_for_item = size_before
                     elif item_type == "file" or os.path.isfile(path) or os.path.islink(path):
-                        os.remove(path)
-                        success = True
-                        freed_for_item = size_before
+                        try:
+                            os.remove(path)
+                            success = True
+                            freed_for_item = size_before
+                        except PermissionError:
+                            res_sudo = subprocess.run(["sudo", "rm", "-f", path], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            if res_sudo.returncode == 0:
+                                success = True
+                                freed_for_item = size_before
+                            else:
+                                raise
                     elif os.path.isdir(path):
                         # Keep only the explicitly selected shared macOS roots.
                         if _preserve_directory(path):
@@ -173,6 +182,10 @@ def execute_deletion_with_live_report(
                                         os.remove(cp)
                                     elif os.path.isdir(cp):
                                         shutil.rmtree(cp)
+                                except PermissionError:
+                                    res_sudo = subprocess.run(["sudo", "rm", "-rf", cp], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                    if res_sudo.returncode != 0:
+                                        child_errors.append(f"{child}: Erişim reddedildi")
                                 except OSError as exc:
                                     child_errors.append(f"{child}: {exc}")
                             size_after = _get_path_size(path)
@@ -181,9 +194,17 @@ def execute_deletion_with_live_report(
                             if child_errors:
                                 error_msg = "; ".join(child_errors[:3])
                         else:
-                            shutil.rmtree(path)
-                            success = True
-                            freed_for_item = size_before
+                            try:
+                                shutil.rmtree(path)
+                                success = True
+                                freed_for_item = size_before
+                            except PermissionError:
+                                res_sudo = subprocess.run(["sudo", "rm", "-rf", path], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                if res_sudo.returncode == 0:
+                                    success = True
+                                    freed_for_item = size_before
+                                else:
+                                    raise
                 else:
                     error_msg = "Öğe artık bulunamadı; silme işlemi uygulanmadı."
             except OSError as e:
