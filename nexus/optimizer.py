@@ -94,11 +94,11 @@ class SystemOptimizer:
             raw_lower = raw_batt.lower()
             if "discharging" in raw_lower:
                 audit["battery"]["state"] = "Pilde (Deşarj)"
+            elif "not charging" in raw_lower or "charged" in raw_lower:
+                audit["battery"]["state"] = "AC Adaptöründe"
             elif "charging" in raw_lower:
                 audit["battery"]["state"] = "Şarj Oluyor (AC)"
                 audit["battery"]["is_charging"] = True
-            elif "not charging" in raw_lower or "charged" in raw_lower:
-                audit["battery"]["state"] = "AC Adaptöründe"
             elif "ac" in raw_lower:
                 audit["battery"]["state"] = "AC Adaptörüne Bağlı"
         except Exception:
