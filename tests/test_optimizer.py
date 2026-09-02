@@ -31,6 +31,16 @@ class SystemOptimizerTests(unittest.TestCase):
         mock_run.assert_called_once()
 
     @patch("subprocess.run")
+    def test_purge_ram_elevates_to_sudo(self, mock_run):
+        # First call fails (code 1), second call (sudo) succeeds (code 0)
+        res_fail = MagicMock(returncode=1)
+        res_ok = MagicMock(returncode=0)
+        mock_run.side_effect = [res_fail, res_ok]
+        self.opt.purge_ram()
+        self.assertEqual(mock_run.call_count, 2)
+        mock_run.assert_called_with(["sudo", "purge"], check=False)
+
+    @patch("subprocess.run")
     @patch("os.path.exists", return_value=True)
     def test_repair_font_cache(self, mock_exists, mock_run):
         with patch("shutil.rmtree") as mock_rm:

@@ -540,8 +540,14 @@ class SystemOptimizer:
             res = subprocess.run(["purge"], check=False, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
             if res.returncode == 0:
                 console.print(f"[{C_EMERALD}]✓ Bellek ve disk önbellekleri başarıyla tahliye edildi.[/]")
+                return
+
+            # Otomatik olarak sudo ile yetkilendir
+            res_sudo = subprocess.run(["sudo", "purge"], check=False)
+            if res_sudo.returncode == 0:
+                console.print(f"[{C_EMERALD}]✓ Bellek ve disk önbellekleri başarıyla tahliye edildi (Yetkilendirildi).[/]")
             else:
-                console.print(f"[{C_AMBER}]Bellek purge işlemi root izni gerektirebilir: 'sudo purge' komutunu çalıştırabilirsiniz.[/]")
+                console.print(f"[{C_AMBER}]Bellek purge işlemi tamamlanamadı veya iptal edildi.[/]")
         except Exception as e:
             console.print(f"[{C_RED}]Hata: {e}[/]")
 
@@ -796,11 +802,18 @@ class SystemOptimizer:
             if active:
                 console.print(f"[{C_EMERALD}]✓ Touch ID sudo yetkilendirmesi sisteminizde zaten aktif ve çalışıyor![/]")
             else:
-                console.print(f"[{C_AMBER}]Touch ID'yi sudo için sistem güncellemelerinde sıfırlanmayacak şekilde kalıcı etkinleştirmek için:[/]")
-                if os.path.exists(pam_template):
-                    console.print(f"[bold white]sudo cp /etc/pam.d/sudo_local.template /etc/pam.d/sudo_local && sudo sed -i '' 's/#auth/auth/' /etc/pam.d/sudo_local[/]\n")
-                else:
-                    console.print(f"[bold white]sudo sed -i '' '1s;^;auth       sufficient     pam_tid.so\\n;' /etc/pam.d/sudo[/]\n")
+                console.print(f"[{C_AMBER}]Touch ID sudo yetkilendirmesi henüz aktif değil.[/]")
+                if confirm_menu("Terminalde şifre yazmak yerine Touch ID (parmak izi) ile yetkilendirmeyi etkinleştirmek ister misiniz?", default=True):
+                    if os.path.exists(pam_template):
+                        cmd = "sudo cp /etc/pam.d/sudo_local.template /etc/pam.d/sudo_local && sudo sed -i '' 's/#auth/auth/' /etc/pam.d/sudo_local"
+                    else:
+                        cmd = "sudo sed -i '' '1s;^;auth       sufficient     pam_tid.so\\n;' /etc/pam.d/sudo"
+                    console.print(f"\n[bold {C_CYAN}]Touch ID yapılandırılıyor...[/]\n")
+                    res = subprocess.run(cmd, shell=True, check=False)
+                    if res.returncode == 0:
+                        console.print(f"[{C_EMERALD}]✓ Touch ID sudo yetkilendirmesi başarıyla etkinleştirildi! Artık sudo komutlarında parmak izinizi kullanabilirsiniz.[/]\n")
+                    else:
+                        console.print(f"[{C_RED}]✖ Touch ID etkinleştirilemedi veya iptal edildi.[/]\n")
         except Exception as e:
             console.print(f"[{C_RED}]Hata: {e}[/]")
 
