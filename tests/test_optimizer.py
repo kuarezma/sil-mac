@@ -176,8 +176,46 @@ class SystemOptimizerTests(unittest.TestCase):
                     return False
                 mock_exists.side_effect = fake_exists
 
-                with patch("os.listdir", return_value=["com.valid.app.plist", "com.orphan.app.plist"]):
+                with patch("os.listdir", return_value=["com.valid.app.plist", "com.orphan.app.plist"]), \
+                     patch("nexus.optimizer.select_menu", return_value="back"):
                     self.opt.inspect_launch_agents()
+
+    def test_remove_launch_agent_user_and_daemon(self):
+        with tempfile.TemporaryDirectory() as d:
+            plist_file = Path(d) / "com.test.agent.plist"
+            plist_file.write_text("<plist></plist>")
+
+            agent_user = {
+                "path": str(plist_file),
+                "label": "com.test.agent",
+                "scope": "Kullanıcı"
+            }
+            with patch("subprocess.run") as mock_run:
+                res = self.opt.remove_launch_agent(agent_user)
+                self.assertTrue(res)
+                self.assertFalse(plist_file.exists())
+                self.assertGreaterEqual(mock_run.call_count, 1)
+
+    @patch("builtins.input", return_value="")
+    @patch("nexus.optimizer.select_menu", side_effect=["clean_select", "back"])
+    @patch("nexus.optimizer.confirm_menu", return_value=True)
+    def test_inspect_launch_agents_interactive_selection(self, mock_conf, mock_select, mock_input):
+        with tempfile.TemporaryDirectory() as d:
+            plist_file = Path(d) / "com.test.xquartz.plist"
+            plist_file.write_text("<plist></plist>")
+            agent = {
+                "filename": "com.test.xquartz.plist",
+                "path": str(plist_file),
+                "label": "com.test.xquartz",
+                "scope": "Kullanıcı",
+                "program": "/usr/bin/open",
+                "exists": True
+            }
+            with patch.object(SystemOptimizer, "scan_launch_agents", side_effect=[[agent], []]), \
+                 patch("nexus.optimizer.checkbox_menu", return_value=[agent]), \
+                 patch.object(SystemOptimizer, "remove_launch_agent", return_value=True) as mock_remove:
+                self.opt.inspect_launch_agents()
+                mock_remove.assert_called_once_with(agent)
 
     def test_setup_touchid_detects_existing_configuration(self):
         with tempfile.TemporaryDirectory() as d:

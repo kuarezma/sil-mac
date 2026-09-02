@@ -19,7 +19,7 @@ from nexus.ui_helpers import (
     C_AMBER, C_RED, C_MUTED, C_INDIGO, C_DARK,
     C_SAFE, C_WARN, C_DANGER
 )
-from nexus.menu_helpers import select_menu, confirm_menu, format_menu_item
+from nexus.menu_helpers import select_menu, confirm_menu, format_menu_item, checkbox_menu
 from InquirerPy.base.control import Choice
 from InquirerPy.separator import Separator
 
@@ -592,10 +592,8 @@ class SystemOptimizer:
         except Exception as e:
             console.print(f"[{C_RED}]Hata: {e}[/]")
 
-    def inspect_launch_agents(self):
-        """Inspect and audit user & system LaunchAgents, detect broken/orphaned background items."""
-        console.print(create_header("BAŞLANGIÇ VE ARKA PLAN AJANLARI DENETİMİ", "LaunchAgents, LaunchDaemons & Yetim Süreç Avcısı", "🚀", tier="safe"))
-
+    def scan_launch_agents(self) -> List[Dict[str, Any]]:
+        """Scan and return all user & system LaunchAgents/LaunchDaemons."""
         agents = []
         paths = [
             (os.path.expanduser("~/Library/LaunchAgents"), "Kullanıcı"),
@@ -634,38 +632,117 @@ class SystemOptimizer:
                 except Exception as e:
                     item["error"] = str(e)
                 agents.append(item)
+        return agents
 
-        if not agents:
-            console.print(f"[{C_EMERALD}]✓ Sistemde incelenecek LaunchAgent bulunamadı.[/]")
-            return
+    def remove_launch_agent(self, agent: Dict[str, Any]) -> bool:
+        """Safely stop and remove a launch agent / daemon from macOS."""
+        path = agent["path"]
+        label = agent.get("label", agent.get("filename", ""))
+        scope = agent.get("scope", "")
 
-        table = Table(box=box.SIMPLE_HEAVY, show_header=True, header_style=f"bold {C_CYAN}", expand=True)
-        table.add_column("Servis / Ajan Adı (Label)", style="bold white", width=36)
-        table.add_column("Kapsam", style=C_MUTED, width=16)
-        table.add_column("Hedef Program Dosyası", style=C_BLUE)
-        table.add_column("Durum", style="bold", width=16)
-
-        orphans = []
-        for a in agents:
-            if not a["exists"]:
-                status = f"[{C_RED}]✖ Yetim (Yok)[/]"
-                orphans.append(a)
+        # 1. Unload service via launchctl
+        try:
+            if "Daemon" in scope:
+                subprocess.run(["launchctl", "bootout", f"system/{label}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+                subprocess.run(["launchctl", "unload", "-w", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
             else:
-                status = f"[{C_EMERALD}]✓ Aktif[/]"
-            table.add_row(a["label"][:36], a["scope"], a["program"][:45], status)
+                uid = os.getuid() if hasattr(os, "getuid") else 501
+                subprocess.run(["launchctl", "bootout", f"gui/{uid}/{label}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+                subprocess.run(["launchctl", "unload", "-w", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        except Exception:
+            pass
 
-        console.print(table)
-        console.print(f"\n[bold white]Toplam {len(agents)} başlangıç ajanı bulundu.[/] (Yetim/Bozuk: [{C_RED if orphans else C_EMERALD}]{len(orphans)}[/{C_RED if orphans else C_EMERALD}])\n")
+        # 2. Delete plist file
+        try:
+            os.remove(path)
+            return True
+        except PermissionError:
+            res = subprocess.run(["sudo", "rm", "-f", path], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return res.returncode == 0
+        except OSError:
+            return False
 
-        if orphans:
-            if confirm_menu(f"{len(orphans)} adet silinmiş uygulamaya ait yetim .plist dosyasını kaldırmak ister misiniz?", default=False, danger=True):
-                for orp in orphans:
-                    try:
-                        os.remove(orp["path"])
-                        console.print(f"[{C_EMERALD}]✓ Kaldırıldı:[/] {orp['filename']}")
-                    except Exception as e:
-                        console.print(f"[{C_RED}]✖ Kaldırılamadı:[/] {orp['filename']} ({e})")
-                console.print()
+    def inspect_launch_agents(self):
+        """Inspect, manage and remove user & system LaunchAgents / Daemons with interactive multi-select."""
+        while True:
+            agents = self.scan_launch_agents()
+            if not agents:
+                console.print(create_header("BAŞLANGIÇ VE ARKA PLAN AJANLARI DENETİMİ", "LaunchAgents, LaunchDaemons & Yetim Süreç Avcısı", "🚀", tier="safe"))
+                console.print(f"[{C_EMERALD}]✓ Sistemde aktif LaunchAgent / Daemon bulunamadı.[/]\n")
+                break
+
+            console.print(create_header("BAŞLANGIÇ VE ARKA PLAN AJANLARI DENETİMİ", "LaunchAgents, LaunchDaemons & Süreç Yönetimi", "🚀", tier="caution"))
+
+            table = Table(box=box.SIMPLE_HEAVY, show_header=True, header_style=f"bold {C_CYAN}", expand=True)
+            table.add_column("Servis / Ajan Adı (Label)", style="bold white", width=36)
+            table.add_column("Kapsam", style=C_MUTED, width=18)
+            table.add_column("Hedef Program Dosyası", style=C_BLUE)
+            table.add_column("Durum", style="bold", width=16)
+
+            orphans = []
+            for a in agents:
+                if not a["exists"]:
+                    status = f"[{C_RED}]✖ Yetim (Yok)[/]"
+                    orphans.append(a)
+                else:
+                    status = f"[{C_EMERALD}]✓ Aktif[/]"
+                table.add_row(a["label"][:36], a["scope"], a["program"][:45], status)
+
+            console.print(table)
+            console.print(f"\n[bold white]Toplam {len(agents)} başlangıç ajanı bulundu.[/] (Yetim/Bozuk: [{C_RED if orphans else C_EMERALD}]{len(orphans)}[/{C_RED if orphans else C_EMERALD}])\n")
+
+            menu_choices = [
+                Choice("clean_select", "🧹  İstenmeyen Ajanları Seç ve Kaldır / Durdur (Çoklu Seçim)"),
+            ]
+            if orphans:
+                menu_choices.append(Choice("clean_orphans", f"🗑️  Yalnızca Yetim / Bozuk Ajanları Temizle ({len(orphans)} adet)"))
+            menu_choices.append(Separator())
+            menu_choices.append(Choice("back", "⬅️  Geri Dön"))
+
+            action = select_menu("Yapmak istediğiniz işlemi seçin:", menu_choices)
+
+            if not action or action == "back":
+                break
+
+            if action == "clean_orphans":
+                if confirm_menu(f"{len(orphans)} adet silinmiş uygulamaya ait yetim .plist dosyasını kaldırmak ister misiniz?", default=False, danger=True):
+                    for orp in orphans:
+                        if self.remove_launch_agent(orp):
+                            console.print(f"[{C_EMERALD}]✓ Kaldırıldı:[/] {orp['filename']}")
+                        else:
+                            console.print(f"[{C_RED}]✖ Kaldırılamadı:[/] {orp['filename']}")
+                    console.print()
+                input("\nDevam etmek için Enter'a basın...")
+                os.system("clear")
+
+            elif action == "clean_select":
+                checkbox_choices = []
+                for a in agents:
+                    is_orphan = not a["exists"]
+                    badge = " [YETİM]" if is_orphan else ""
+                    disp_name = f"{a['label'][:34]:<34} │ {a['scope']:<16} │ {a['program'][:30]}{badge}"
+                    checkbox_choices.append(Choice(value=a, name=disp_name, enabled=is_orphan))
+
+                selected_agents = checkbox_menu("Kaldırmak ve servisini durdurmak istediğiniz ajanları [Boşluk] ile seçin:", checkbox_choices)
+
+                if not selected_agents:
+                    console.print(f"[{C_MUTED}]Hiçbir ajan seçilmedi.[/]\n")
+                else:
+                    if confirm_menu(
+                        f"Seçilen {len(selected_agents)} adet başlangıç ajanı durdurulacak ve .plist dosyası kalıcı olarak silinecek. Devam edilsin mi?",
+                        default=False, danger=True
+                    ):
+                        console.print(f"\n[bold {C_CYAN}]Ajanlar durduruluyor ve kaldırılıyor...[/]\n")
+                        success_count = 0
+                        for a in selected_agents:
+                            if self.remove_launch_agent(a):
+                                console.print(f"[{C_EMERALD}]✓ Durduruldu & Kaldırıldı:[/] {a['label']} ({a['scope']})")
+                                success_count += 1
+                            else:
+                                console.print(f"[{C_RED}]✖ Kaldırılamadı:[/] {a['label']} (Yetki gerekebilir: sudo rm {a['path']})")
+                        console.print(f"\n[{C_EMERALD}]Toplam {success_count} / {len(selected_agents)} ajan başarıyla temizlendi.[/]\n")
+                input("\nDevam etmek için Enter'a basın...")
+                os.system("clear")
 
     def homebrew_maintenance(self):
         """Run `brew cleanup` and `brew autoremove`."""
